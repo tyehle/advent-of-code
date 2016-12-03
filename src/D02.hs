@@ -45,7 +45,7 @@ getKey :: [[a]] -> (Int, Int) -> a
 getKey pad (row, col) = (pad !! row) !! col
 
 execCommand :: ((Int,Int) -> Bool) -> (Int, Int) -> Command -> (Int, Int)
-execCommand inBounds pos@(row, col) cmd = if inBounds newPos then newPos else pos
+execCommand inBounds pos cmd = if inBounds newPos then newPos else pos
   where
     move (r,c) U = (r-1,c)
     move (r,c) D = (r+1,c)
@@ -55,6 +55,6 @@ execCommand inBounds pos@(row, col) cmd = if inBounds newPos then newPos else po
 
 execCommands :: ((Int,Int) -> Bool) -> (Int, Int) -> [[Command]] -> [(Int, Int)]
 execCommands _ _ [] = []
-execCommands inBounds start@(row, col) (cmds:rest) = rowEnd : execCommands inBounds rowEnd rest
+execCommands inBounds start (cmds:rest) = rowEnd : execCommands inBounds rowEnd rest
   where
     rowEnd = foldl (execCommand inBounds) start cmds
