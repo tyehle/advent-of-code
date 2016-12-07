@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     D06
+  exposed-modules:     D07
   build-depends:       base >= 4.7 && < 5
                      , containers
                      , parsec
