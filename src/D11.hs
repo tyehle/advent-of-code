@@ -3,13 +3,13 @@ module D11 where
 import Data.List (find, (\\))
 import Data.Maybe (fromJust)
 import Data.Array
-import Search (breadthFirst)
+import Search (aStar)
 
 run :: IO ()
 run = do
-  let path = bfsPath initialState
+  let path = aStarPath initialState
   print . subtract 1 . length $ path
-  mapM_ print (reverse path)
+  mapM_ (print . (\s -> (s, howClose s))) (reverse path)
 
 
 data Isotope = Tm | Pu | Sr | Pm | Ru deriving (Eq, Show, Ord)
@@ -30,25 +30,25 @@ type State = Array Int [Entity]
 -- The second floor contains a plutonium-compatible microchip and a strontium-compatible microchip.
 -- The third floor contains a promethium generator, a promethium-compatible microchip, a ruthenium generator, and a ruthenium-compatible microchip.
 -- The fourth floor contains nothing relevant.
--- initialState :: State
--- initialState = listArray (1,4)
---   [ [Generator Tm, Chip Tm, Generator Pu, Generator Sr, Elevator]
---   , [Chip Pu, Chip Sr]
---   , [Generator Pm, Chip Pm, Generator Ru, Chip Ru]
---   , []
---   ]
+initialState :: State
+initialState = listArray (1,4)
+  [ [Generator Tm, Chip Tm, Generator Pu, Generator Sr, Elevator]
+  , [Chip Pu, Chip Sr]
+  , [Generator Pm, Chip Pm, Generator Ru, Chip Ru]
+  , []
+  ]
 
 -- The first floor contains a hydrogen-compatible microchip and a lithium-compatible microchip.
 -- The second floor contains a hydrogen generator.
 -- The third floor contains a lithium generator.
 -- The fourth floor contains nothing relevant.
-initialState :: State
-initialState = listArray (1,4)
-  [ [Elevator, Chip Pu, Chip Sr]
-  , [Generator Pu]
-  , [Generator Sr]
-  , []
-  ]
+-- initialState :: State
+-- initialState = listArray (1,4)
+--   [ [Elevator, Chip Pu, Chip Sr]
+--   , [Generator Pu]
+--   , [Generator Sr]
+--   , []
+--   ]
 
 
 isDone :: State -> Bool
@@ -61,16 +61,29 @@ isValid = all checkFloor
     hasPair f (Chip i) = Generator i `elem` f
     hasPair _ _ = undefined
 
-bfsPath :: State -> [State]
-bfsPath = breadthFirst (filter isValid . allMoves) isDone
+howClose :: State -> Int
+howClose s = movesForElevator + movesToFloor 4
+  where
+    movesForElevator = fromJust (findIndex (elem Elevator) s) - lowestOccupiedFloor
+    lowestOccupiedFloor = fromJust . findIndex (not . null) $ s
+    itemCount floorNum = let baseNum = foldl (\t e -> if e == Elevator then t-1 else t+1) 0 (s!floorNum)
+                         in if floorNum == lowestOccupiedFloor then baseNum + 1 else baseNum
+    movesToFloor n | n <= lowestOccupiedFloor = 0
+                   | otherwise = movesToFloor (n-1) + sum (map itemCount [lowestOccupiedFloor..n-1]) - 1
+
+findIndex :: Ix i => (e -> Bool) -> Array i e -> Maybe i
+findIndex c xs = fst <$> find (\(_,x) -> c x) (assocs xs)
+
+
+aStarPath :: State -> [State]
+aStarPath = aStar (filter isValid . allMoves) howClose isDone
 
 allMoves :: State -> [State]
 allMoves s = [doMove ents floorTo | ents <- movableItems, floorTo <- adjacentFloors]
   where
-    floorNum = fst . fromJust . find (\(_,es) -> Elevator `elem` es) . assocs $ s
+    floorNum = fromJust . findIndex (elem Elevator) $ s
     adjacentFloors = filter (\f -> 1 <= f && f <= 4) [floorNum+1, floorNum-1]
     movableItems = map (Elevator:) . (\ents -> choose 1 ents ++ choose 2 ents) . filter (/= Elevator) $ s ! floorNum
-    -- movableItems = map (Elevator:) $ concat [(choice . filter f) (s ! floorNum) | f <- [isGenerator, isChip], choice <- [choose 1, choose 2]]
     doMove ents floorTo = s // [(floorNum, (s!floorNum) \\ ents), (floorTo, (s!floorTo) ++ ents)]
 
 choose :: Int -> [a] -> [[a]]

@@ -19,12 +19,12 @@ runBFS step done visited fringe = fromMaybe recur $ find (done . head) fringe
     fringe' = concatMap advance fringe
     recur = runBFS step done visited' fringe'
 
-aStar :: Ord a => (a -> [a]) -> (a -> Integer) -> (a -> Bool) -> a -> [a]
+aStar :: Ord a => (a -> [a]) -> (a -> Int) -> (a -> Bool) -> a -> [a]
 aStar step close done initial = runAStar step close done Set.empty queue
   where
     queue = PQ.singleton [initial] (close initial)
 
-runAStar :: Ord a => (a -> [a]) -> (a -> Integer) -> (a -> Bool) -> Set a -> PSQ [a] Integer -> [a]
+runAStar :: Ord a => (a -> [a]) -> (a -> Int) -> (a -> Bool) -> Set a -> PSQ [a] Int -> [a]
 runAStar step close done visited fringe = if (done . head) smallest
                                           then smallest
                                           else recur
