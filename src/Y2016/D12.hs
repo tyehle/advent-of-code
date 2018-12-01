@@ -1,4 +1,4 @@
-module D12 where
+module Y2016.D12 where
 
 import Text.Parsec
 import Text.Parsec.String

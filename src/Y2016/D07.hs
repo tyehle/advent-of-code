@@ -1,4 +1,4 @@
-module D07 where
+module Y2016.D07 where
 
 import Text.Parsec
 import Data.List (group, sort)

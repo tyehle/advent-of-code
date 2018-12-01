@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     D12
+  exposed-modules:     Y2018.D01
                      , Search
   build-depends:       base >= 4.7 && < 5
                      , containers

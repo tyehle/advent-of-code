@@ -1,6 +1,6 @@
 module Main where
 
-import D12
+import Y2018.D01
 
 main :: IO ()
 main = run

@@ -1,4 +1,4 @@
-module D10 where
+module Y2016.D10 where
 
 import Text.Parsec
 import Data.List (group, sort, find, sortOn)

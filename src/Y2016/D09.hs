@@ -1,4 +1,4 @@
-module D09 where
+module Y2016.D09 where
 
 import Text.Parsec
 

@@ -1,4 +1,4 @@
-module D02 where
+module Y2016.D02 where
 
 import Data.Char (toUpper)
 import Numeric (showHex)

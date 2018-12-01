@@ -1,4 +1,4 @@
-module D05 where
+module Y2016.D05 where
 
 import Crypto.Hash (hashWith)
 import Crypto.Hash.Algorithms (MD5(..))

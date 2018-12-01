@@ -1,4 +1,4 @@
-module D08 where
+module Y2016.D08 where
 
 import Text.Parsec
 import Data.List (intercalate)

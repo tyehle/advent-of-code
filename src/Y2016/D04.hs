@@ -1,4 +1,4 @@
-module D04 where
+module Y2016.D04 where
 
 import Text.Parsec
 import Text.Parsec.Char (letter)

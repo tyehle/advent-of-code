@@ -1,4 +1,4 @@
-module D01 where
+module Y2016.D01 where
 
 import Data.Maybe (fromJust)
 import Data.Char (isNumber)

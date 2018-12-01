@@ -1,4 +1,4 @@
-module D06 where
+module Y2016.D06 where
 
 import Data.List (transpose, group, sort, sortOn)
 

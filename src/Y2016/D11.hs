@@ -1,4 +1,4 @@
-module D11 where
+module Y2016.D11 where
 
 import Data.List (find, (\\))
 import Data.Maybe (fromJust)
