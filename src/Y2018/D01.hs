@@ -5,8 +5,7 @@ import qualified Data.Set as Set
 run :: IO ()
 run = do
   fileName <- getLine
-  file <- readFile fileName
-  let ints = parseInputList file
+  ints <- parseInputList <$> readFile fileName
   print $ collectJuicyStar ints
   print $ collectPrickleyStar ints
 
