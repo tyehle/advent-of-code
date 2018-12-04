@@ -5,8 +5,6 @@ import Data.List
 
 data Record = Record {left :: Int, top :: Int, width :: Int, height :: Int} deriving Show
 
-
-
 run :: IO ()
 run = do
   fileName <- getLine
@@ -30,8 +28,8 @@ parse xs = Record (read left') (read $ init top') width' height'
 associationList :: Record -> [(Int, Int)]
 -- [x y | x <- [top..top + width], y <- [left..left + height]]
 associationList (Record left' top' width' height') = do
-    x <- [top'..top' + width' - 1]
-    y <- [left'..left' + height' - 1]
+    x <- [top'..top' + height' - 1]
+    y <- [left'..left' + width' - 1]
     return (x, y)
 
 -- merge all maps with count
