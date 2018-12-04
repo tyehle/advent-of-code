@@ -1,11 +1,7 @@
 module Y2018.D02 where
 
-import qualified Data.Map as Map
 import Data.List
 import Data.Maybe (catMaybes)
-
-
-
 
 run :: IO ()
 run = do
