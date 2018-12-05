@@ -15,7 +15,7 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Y2018.D03
+  exposed-modules:     Y2018.D04
                      , Search
   build-depends:       base >= 4.7 && < 5
                      , containers
@@ -25,6 +25,7 @@ library
                      , array
                      , PSQueue
                      , split
+                     , time
   default-language:    Haskell2010
   ghc-options:         -Wall
 
