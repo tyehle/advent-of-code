@@ -3,9 +3,8 @@ module Y2018.D02 where
 import Data.List
 import Data.Maybe (catMaybes)
 
-run :: IO ()
-run = do
-  fileName <- getLine
+run :: String -> IO ()
+run fileName = do
   ids <- lines <$> readFile fileName
   print $ checksum ids
   print $ spicyStar ids
