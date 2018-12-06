@@ -2,6 +2,7 @@ module Y2018.D06 where
 
 -- import Data.Char
 import Data.List.Split
+import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
 -- import qualified Data.Set as Set
@@ -27,7 +28,7 @@ run fileName = do
   let filteredClosestGrid = filter (filterFunc edgeClosestGrid) closestGrid
   let areas = frequencies . catMaybes . map snd $ filteredClosestGrid
 
-  print $ maximumBy (\(_, a) (_, b) -> a `compare` b) $ Map.toList areas
+  print $ sortBy (\(_, a) (_, b) -> a `compare` b) $ Map.toList areas
 
   -- Calculate all Areas
   print "hi"
