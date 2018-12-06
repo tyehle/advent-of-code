@@ -30,6 +30,9 @@ run fileName = do
 
   print $ sortBy (\(_, a) (_, b) -> a `compare` b) $ Map.toList areas
 
+  let gridDistances = map (getDistanceSum points) grid
+  print . length . filter (< 10000) $ gridDistances
+
   -- Calculate all Areas
   print "hi"
   where
@@ -73,11 +76,13 @@ getClosest (p:ps) target = go ps (distance target p) (Just p)
             where currentDistance = distance x target
 
 
-
-
-
 -- getClosest points x = minimumBy (\a b -> distance a x `compare` distance b x) points
 
 parse :: String -> Point
 parse str = (read x', read y')
     where [x', y'] = splitOn ", " str
+
+
+-- Part 2
+getDistanceSum :: [Point] -> Point -> Int
+getDistanceSum points target = sum . map (distance target) $ points
