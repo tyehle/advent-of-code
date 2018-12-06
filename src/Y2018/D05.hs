@@ -3,17 +3,8 @@ module Y2018.D05 where
 import Data.Char
 import qualified Data.Set as Set
 
-
-
--- data Event = FallsAsleep UTCTime | WakesUp UTCTime | StartShift Int UTCTime deriving (Show, Eq)
--- instance Ord Event
---     where compare x y = getTime x `compare` getTime y
-
-
-
-run :: IO ()
-run = do
-  fileName <- getLine
+run :: String -> IO ()
+run fileName = do
   -- parse the input into a record
   polymer <- init <$> readFile fileName
   let answer = reduce polymer

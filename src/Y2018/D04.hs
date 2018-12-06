@@ -20,9 +20,8 @@ getTime (WakesUp x)      = x
 getTime (StartShift _ x) = x
 
 
-run :: IO ()
-run = do
-  fileName <- getLine
+run :: String -> IO ()
+run fileName = do
   -- parse the input into a record
   events <- map parse . lines <$> readFile fileName
   let (StartShift guard _ : sortedEvents) = sort events

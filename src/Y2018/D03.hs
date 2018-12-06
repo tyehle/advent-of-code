@@ -5,9 +5,8 @@ import Data.List
 
 data Record = Record {num :: Int, left :: Int, top :: Int, width :: Int, height :: Int} deriving (Show, Eq)
 
-run :: IO ()
-run = do
-  fileName <- getLine
+run :: String -> IO ()
+run fileName = do
   -- parse the input into a record
   records <- map parse . lines <$> readFile fileName
   print $ roughStar records

@@ -2,9 +2,8 @@ module Y2018.D01 where
 
 import qualified Data.Set as Set
 
-run :: IO ()
-run = do
-  fileName <- getLine
+run :: String -> IO ()
+run fileName = do
   ints <- parseInputList <$> readFile fileName
   print $ collectJuicyStar ints
   print $ collectPrickleyStar ints
