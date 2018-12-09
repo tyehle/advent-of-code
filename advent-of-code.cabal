@@ -1,52 +1,87 @@
-name:                advent-of-code
-version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
-homepage:            https://github.com/tyehle/advent-of-code#readme
-license:             BSD3
-license-file:        LICENSE
-author:              Tobin Yehle
-maintainer:          tobinyehle@gmail.com
-copyright:           2016 Tobin Yehle
-category:            Web
-build-type:          Simple
-extra-source-files:  README.md
-cabal-version:       >=1.10
+cabal-version: 1.12
 
-library
-  hs-source-dirs:      src
-  exposed-modules:     Y2018.D06
-                     , Search
-  build-depends:       base >= 4.7 && < 5
-                     , containers
-                     , parsec
-                     , cryptonite
-                     , bytestring
-                     , array
-                     , PSQueue
-                     , split
-                     , time
-  default-language:    Haskell2010
-  ghc-options:         -Wall
+-- This file has been generated from package.yaml by hpack version 0.31.0.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: d4670f2fa7e99c7c448cfd962e521cb0f708d34401024e828297aec2d3d048f1
 
-executable advent
-  hs-source-dirs:      app
-  main-is:             Main.hs
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base
-                     , advent-of-code
-  ghc-options:         -Wall -threaded
-  default-language:    Haskell2010
-
-test-suite advent-of-code-test
-  type:                exitcode-stdio-1.0
-  hs-source-dirs:      test
-  main-is:             Spec.hs
-  build-depends:       base
-                     , advent-of-code
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  default-language:    Haskell2010
+name:           advent-of-code
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/tyehle/advent-of-code#readme>
+homepage:       https://github.com/tyehle/advent-of-code#readme
+bug-reports:    https://github.com/tyehle/advent-of-code/issues
+author:         Tobin Yehle
+maintainer:     tobinyehle@gmail.com
+copyright:      2018 Tobin Yehle
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
 
 source-repository head
-  type:     git
+  type: git
   location: https://github.com/tyehle/advent-of-code
+
+library
+  exposed-modules:
+      Search
+      Y2016.D01
+      Y2016.D02
+      Y2016.D03
+      Y2016.D04
+      Y2016.D05
+      Y2016.D06
+      Y2016.D07
+      Y2016.D08
+      Y2016.D09
+      Y2016.D10
+      Y2016.D11
+      Y2016.D12
+      Y2018.D01
+      Y2018.D02
+      Y2018.D03
+      Y2018.D04
+      Y2018.D05
+      Y2018.D06
+  other-modules:
+      Paths_advent_of_code
+  hs-source-dirs:
+      src
+  build-depends:
+      PSQueue
+    , array
+    , base >=4.7 && <5
+    , bytestring
+    , containers
+    , cryptonite
+    , parsec
+    , split
+    , time
+  default-language: Haskell2010
+
+executable advent
+  main-is: Main.hs
+  other-modules:
+      Paths_advent_of_code
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      advent-of-code
+    , base >=4.7 && <5
+  default-language: Haskell2010
+
+test-suite advent-of-code-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_advent_of_code
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      advent-of-code
+    , base >=4.7 && <5
+  default-language: Haskell2010
