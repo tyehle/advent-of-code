@@ -32,6 +32,7 @@ library:
   - PSQueue
   - split
   - time
+  - mtl
 
 executables:
   advent:

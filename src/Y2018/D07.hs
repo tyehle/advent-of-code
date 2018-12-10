@@ -5,6 +5,9 @@ import qualified Data.Map as Map
 import Data.PSQueue (PSQ)
 import qualified Data.PSQueue as PQ
 import Data.List (foldl', delete)
+import Data.Char (ord)
+import Data.Maybe (isNothing)
+import Control.Monad.State
 
 -- | Parents and Children of a node
 data Dep = Dep [String] [String] deriving (Show)
@@ -19,6 +22,7 @@ run fileName = do
   pairs <- map (getWords . words) . lines <$> readFile fileName
   let deps = foldl' (flip populate) Map.empty pairs
   print $ concat $ topoSort deps
+  print $ timelyStar deps - 1
 
 populate ::
   (String, String) -> -- | parent, child pair
@@ -40,27 +44,74 @@ getWords [_, parent, _, _, _, _, _, child, _, _] = (parent, child)
 
 
 topoSort :: Map String Dep -> [String]
-topoSort db0 = reverse $ go initFringe db0 []
+topoSort db0 = reverse $ go (initFringe db0) db0 []
   where
-    initFringe = PQ.fromList $ map (\k -> k PQ.:-> k) $ Map.keys $ Map.filter (\(Dep parents _) -> 0 == length parents) db0
     go :: PSQ String String -> Map String Dep -> [String] -> [String]
-    go fringe db result = step $ PQ.minView fringe
+    go fringe db result = case popFringe db fringe of
+      Nothing -> result
+      Just (what, newDB, newFringe) -> go newFringe newDB (what : result)
+
+
+popFringe :: Map String Dep -> PSQ String String -> Maybe (String, Map String Dep, PSQ String String)
+popFringe db fringe = case PQ.minView fringe of
+  Nothing -> Nothing
+  Just (binding, smallerFringe) -> Just $ doRemove binding smallerFringe
+  where
+    doRemove :: PQ.Binding String String -> PSQ String String -> (String, Map String Dep, PSQ String String)
+    doRemove binding smallerFringe = (PQ.key binding, newDB, newFringe)
       where
-        step Nothing = result
-        step (Just (binding, smallerFringe)) = go newFringe newDB (PQ.key binding : result)
-          where
-            (addToFringe, newDB) = removeFromDB (PQ.key binding) db
-            newFringe = foldl' (\que str -> PQ.insert str str que) smallerFringe addToFringe
+        (newDB, newFringe) = removeFromDB (PQ.key binding) db smallerFringe
 
-    removeFromDB :: String -> Map String Dep -> ([String], Map String Dep)
-    removeFromDB key db = foldl' removeParent ([], db) children
-      where (Dep _ children) =  db Map.! key
-            killParent :: Maybe Dep -> Maybe Dep
-            killParent Nothing = error "tried to delete a parent from a nonexistant child"
-            killParent (Just (Dep parents children)) = Just (Dep (delete key parents) children)
 
-            removeParent :: ([String], Map String Dep) -> String -> ([String], Map String Dep)
-            removeParent (fringe, db) child
-              | orphan $ updatedDB Map.! child = (child:fringe, updatedDB)
-              | otherwise = (fringe, updatedDB)
-              where updatedDB = Map.alter killParent child db
+removeFromDB :: String -> Map String Dep -> PSQ String String -> (Map String Dep, PSQ String String)
+removeFromDB key db fringe = (newDB, newFringe)
+  where
+    (Dep _ children) =  db Map.! key
+
+    killParent :: Maybe Dep -> Maybe Dep
+    killParent Nothing = error "tried to delete a parent from a nonexistant child"
+    killParent (Just (Dep parents children)) = Just (Dep (delete key parents) children)
+
+    removeParent :: ([String], Map String Dep) -> String -> ([String], Map String Dep)
+    removeParent (fringe, db) child
+      | orphan $ updatedDB Map.! child = (child:fringe, updatedDB)
+      | otherwise = (fringe, updatedDB)
+      where updatedDB = Map.alter killParent child db
+
+    (toAddToFringe, newDB) = foldl' removeParent ([], db) children
+    newFringe = foldl' (\q k -> PQ.insert k k q) fringe toAddToFringe
+
+
+initFringe :: Map String Dep -> PSQ String String
+initFringe = PQ.fromList . map (\k -> k PQ.:-> k) . Map.keys . Map.filter (\(Dep parents _) -> 0 == length parents)
+
+
+timelyStar :: Map String Dep -> Int
+timelyStar db = simulateBuild 0 db [] (initFringe db)
+
+
+simulateBuild :: Int -> Map String Dep -> [(String, Int)] -> PSQ String String -> Int
+simulateBuild t db inProgress fringe
+  | null inProgress && isNothing (PQ.findMin fringe) = t
+  | otherwise = simulateBuild (t+1) fullDB fullProcs fullFringe
+  where
+    buildTime :: String -> Int
+    buildTime [c] = ord c - 4
+
+    updateProcs :: [(String, Int)] -> Map String Dep -> PSQ String String -> ([(String, Int)], Map String Dep, PSQ String String)
+    updateProcs procs db fringe = (newProcs, newDB, newFringe)
+      where
+        tickedProcs = map (\(k, tRemain) -> (k, tRemain - 1)) procs
+        doneProcs = filter ((== 0) . snd) tickedProcs
+        newProcs = filter ((/= 0) . snd) tickedProcs
+        (newDB, newFringe) = foldl' (\(db', fringe') (k, _) -> removeFromDB k db' fringe') (db, fringe) doneProcs
+
+    ensureFullProcs :: [(String, Int)] -> Map String Dep -> PSQ String String -> ([(String, Int)], Map String Dep, PSQ String String)
+    ensureFullProcs procs db fringe
+      | length procs == 5 = (procs, db, fringe)
+      | otherwise = case PQ.minView fringe of
+        Nothing -> (procs, db, fringe)
+        Just (binding, smallerFringe) -> ensureFullProcs ((PQ.key binding, buildTime (PQ.key binding)):procs) db smallerFringe
+
+    (tickProcs, tickDB, tickFringe) = updateProcs inProgress db fringe
+    (fullProcs, fullDB, fullFringe) = ensureFullProcs tickProcs tickDB tickFringe

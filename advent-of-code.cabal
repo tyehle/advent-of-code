@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6b5bf575cdd54229845e5f06f26346a91ea7e80d563f7523fee69a823445cb77
+-- hash: aab0d5c46112550348e242931b0f94dcd4ad33cbb831174bc6b8c755bb6e0329
 
 name:           advent-of-code
 version:        0.1.0.0
@@ -57,6 +57,7 @@ library
     , bytestring
     , containers
     , cryptonite
+    , mtl
     , parsec
     , split
     , time
