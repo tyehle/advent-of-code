@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.0.
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aab0d5c46112550348e242931b0f94dcd4ad33cbb831174bc6b8c755bb6e0329
+-- hash: f639fd6307942b129c6613e999303885bf161d4dc5d37cf43f37eac62fc458a3
 
 name:           advent-of-code
 version:        0.1.0.0
@@ -46,6 +46,9 @@ library
       Y2018.D05
       Y2018.D06
       Y2018.D07
+      Y2018.D08
+      Y2018.D09
+      Y2018.D10
   other-modules:
       Paths_advent_of_code
   hs-source-dirs:
