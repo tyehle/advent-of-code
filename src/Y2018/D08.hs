@@ -12,7 +12,16 @@ run fileName = do
   stalk <- parse corn fileName <$> readFile fileName
   let stalker = either (error . show) id stalk
   print $ sumMetaCorn stalker
+  print $ smuttyStar stalker
 
+
+smuttyStar :: Corn -> Int
+smuttyStar (Corn []       metaCorn) = sum metaCorn
+smuttyStar (Corn children metaCorn) = sum $ safeAccess <$> metaCorn
+  where safeAccess :: Int -> Int
+        safeAccess idx
+          | (idx > 0) && (idx <= length children ) = smuttyStar (children !! (idx - 1))
+          | otherwise = 0
 
 sumMetaCorn :: Corn -> Int
 sumMetaCorn (Corn children metaCorn) = sum metaCorn + sum (sumMetaCorn <$> children)
