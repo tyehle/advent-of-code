@@ -23,6 +23,10 @@ run :: String -> IO ()
 run fileName = do
   (numPlayers, numMarbles) <- parse <$> readFile fileName
   print $ winningScore numPlayers numMarbles
+  print $ noFucksStar numPlayers numMarbles
+
+noFucksStar :: Int -> Int -> Int
+noFucksStar numPlayers numMarbles = winningScore numPlayers (100 * numMarbles)
 
 parse :: String -> (Int, Int)
 parse = (\x -> (read (head x), read (x !! 6))) . words

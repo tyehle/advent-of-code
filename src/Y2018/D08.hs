@@ -1,22 +1,30 @@
 module Y2018.D08 where
 
-data Node = Node [Node] [Int]
+import Text.Parsec
+import Text.Parsec.Char
+import Control.Monad (replicateM)
 
+data Corn = Corn [Corn] [Int]
 
 run :: String -> IO ()
 run fileName = do
   -- parent, child pairs
-  root <- parse <$> readFile fileName
-  print $ easyStar root
+  stalk <- parse corn fileName <$> readFile fileName
+  let stalker = either (error . show) id stalk
+  print $ sumMetaCorn stalker
 
 
-easyStar :: Node -> Int
-easyStar = undefined
+sumMetaCorn :: Corn -> Int
+sumMetaCorn (Corn children metaCorn) = sum metaCorn + sum (sumMetaCorn <$> children)
 
-parse :: String -> Node
-parse xs = undefined
-  where raw = map (\x -> read x :: Int) $ words xs
-        getChildNode :: [Int] -> Node
-        getChildNode inputs = undefined
-          where [numChildren, numMeta] = take 2 inputs
-                todo = getChildNode (drop 2 inputs)
+number :: Parsec String () Int
+number = read <$> many1 digit
+
+corn :: Parsec String () Corn
+corn = do
+  numChildren <- number
+  space
+  numMeta <- number
+  childrenOfTheCorn <- replicateM numChildren $ space >> corn
+  metaCorn <- replicateM numMeta $ space >> number
+  return $ Corn childrenOfTheCorn metaCorn
