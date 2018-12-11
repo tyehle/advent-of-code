@@ -14,7 +14,7 @@ run fileName = do
   print $ sumMetaCorn stalker
   print $ smuttyStar stalker
 
-
+-- to clarify, this is corn smut, aka huitlacoche
 smuttyStar :: Corn -> Int
 smuttyStar (Corn []       metaCorn) = sum metaCorn
 smuttyStar (Corn children metaCorn) = sum $ safeAccess <$> metaCorn
