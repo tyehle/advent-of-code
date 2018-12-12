@@ -1,54 +1,79 @@
 module Y2018.D10 where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.PSQueue (PSQ)
-import qualified Data.PSQueue as PQ
-import Data.List (foldl', delete)
-import Data.Char (ord)
-import Data.Maybe (isNothing)
-import Control.Monad.State
+import Control.Monad
+import Text.Parsec
+import Text.Parsec.Char
 
-                  -- current circle nextMarble scores playa
-data GameState = GameState Int [Int] Int [Int] Int
+import Graphics.Rendering.Chart.Easy
+import Graphics.Rendering.Chart.Backend.Cairo
 
-getScores :: GameState -> [Int]
-getScores (GameState _ _ _ scores _) = scores
 
-initState :: Int -> GameState
-initState numPlayers = GameState 0    -- current
-                                 [0]  -- circle
-                                 1    -- nextMarble
-                                 (replicate numPlayers 0)  -- scores
-                                 0    -- current player
+type Vec = (Int, Int)
+
+--            position velocity
+data Dot = Dot Vec Vec deriving (Show)
+
 
 run :: String -> IO ()
 run fileName = do
-  (numPlayers, numMarbles) <- parse <$> readFile fileName
-  print $ winningScore numPlayers numMarbles
+  dots <- map parseDot . lines <$> readFile fileName
+  let allDots = iterate step dots
+      numPlots = 200
+  let (coolDots, offset) = dropBoring allDots
+  zipWithM_ plotDots ["plots/" ++ show n ++ ".png" | n <- [offset..offset+numPlots-1]] coolDots
 
-parse :: String -> (Int, Int)
-parse = (\x -> (read (head x), read (x !! 6))) . words
 
-winningScore :: Int -> Int -> Int
-winningScore numPlayers numMarbles = maximum $ getScores allScores
-  where allScores = foldl' (\gs fuel -> step gs) (initState numPlayers) [0.. numMarbles]
-
-step :: GameState -> GameState
-step (GameState current circle nextMarbles scores playa)
-  | mod current 27 == 0 = normal
-  | otherwise = fubar
+dropBoring :: [[Dot]] -> ([[Dot]], Int)
+dropBoring = go 0
   where
-    normal :: GameState
-    normal = GameState 0    -- current
-                       [0]  -- circle
-                       1    -- nextMarble
-                       [0]  -- scores
-                       0    -- current player
+    isClose :: Dot -> Bool
+    isClose (Dot (px, py) _) = abs px < 400 && abs py < 400
+    go :: Int -> [[Dot]] -> ([[Dot]], Int)
+    go idx dots@(d:ds)
+      | all isClose d = (dots, idx)
+      | otherwise = go (idx + 1) ds
 
-    fubar :: GameState
-    fubar = GameState 0    -- current
-                      [0]  -- circle
-                      1    -- nextMarble
-                      [0]  -- scores
-                      0    -- current player
+step :: [Dot] -> [Dot]
+step = fmap babyStep
+  where
+    babyStep (Dot (px, py) (vx, vy)) = Dot (px + vx, py + vy) (vx, vy)
+
+
+plotDots :: String -> [Dot] -> IO ()
+plotDots fileName dots = toFile (FileOptions (1200,200) PNG) fileName $ do
+  -- plot (points "" coords)
+  plot $ liftEC $ do
+    color <- takeColor
+    shape <- takeShape
+    plot_points_values .= (pos <$> dots)
+    plot_points_title .= ""
+    plot_points_style . point_color .= color
+    plot_points_style . point_shape .= shape
+    plot_points_style . point_radius .= 10
+  return ()
+  where
+    pos (Dot (px, py) _) = (px, -py)
+
+
+parseDot :: String -> Dot
+parseDot = either (error . show) id . parse dot ""
+  where
+    dot :: Parsec String () Dot
+    dot = do
+      string "position=<"
+      spaces
+      px <- number
+      char ','
+      spaces
+      py <- number
+      string "> velocity=<"
+      spaces
+      vx <- number
+      char ','
+      spaces
+      vy <- number
+      char '>'
+      eof
+      return $ Dot (px, py) (vx, vy)
+    number :: Parsec String () Int
+    number = read <$> many1 (oneOf $ '-':['0'..'9'])

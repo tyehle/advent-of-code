@@ -33,6 +33,9 @@ library:
   - split
   - time
   - mtl
+  - plot
+  - Chart
+  - Chart-cairo
 
 executables:
   advent:

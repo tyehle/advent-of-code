@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f639fd6307942b129c6613e999303885bf161d4dc5d37cf43f37eac62fc458a3
+-- hash: 34d8934dadc5c24349df4afbd0018d840c1d82fb9f94e3b9df9f7f98d00c8222
 
 name:           advent-of-code
 version:        0.1.0.0
@@ -54,7 +54,9 @@ library
   hs-source-dirs:
       src
   build-depends:
-      PSQueue
+      Chart
+    , Chart-cairo
+    , PSQueue
     , array
     , base >=4.7 && <5
     , bytestring
@@ -62,6 +64,7 @@ library
     , cryptonite
     , mtl
     , parsec
+    , plot
     , split
     , time
   default-language: Haskell2010
