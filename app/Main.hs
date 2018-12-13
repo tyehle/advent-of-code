@@ -2,11 +2,11 @@ module Main where
 
 import System.IO (hFlush, stdout)
 
-import Y2018.D10
+import Y2018.D11
 
 main :: IO ()
 main = do
-  putStr "Input file: "
+  putStr "Input: "
   hFlush stdout
   fileName <- getLine
   run fileName
