@@ -50,6 +50,7 @@ library
       Y2018.D09
       Y2018.D10
       Y2018.D11
+      Y2018.D12
   other-modules:
       Paths_advent_of_code
   hs-source-dirs:
