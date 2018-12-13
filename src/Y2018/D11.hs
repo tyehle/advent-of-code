@@ -14,8 +14,8 @@ run input = do
   let sn :: Int
       sn = read input
       powerLevels = mkPowerLevels sn
-  print $ squareStar powerLevels 3
-  print $ evalState (maxPower (powerLevels Map.!)) Map.empty
+  print . snd $ squareStar powerLevels 3
+  print . snd $ evalState (maxPower (powerLevels Map.!)) Map.empty
 
 
 maxPower :: (Loc -> Int) -> State (Map (Loc, Int) Int) (Int, (Loc, Int))
