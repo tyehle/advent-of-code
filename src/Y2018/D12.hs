@@ -13,10 +13,10 @@ type Rule = ([Bool], Bool)
 run :: String -> IO ()
 run fileName = do
   (state0, rules) <- unsafeParse parseInput fileName <$> readFile fileName
-  -- let allStates = iterate (step rules) (0, state0)
   print $ crunkStar rules 20 (0, state0)
-  -- print . sumIndices $ allStates !! 20
-  print $ crunkStar rules 500000 (0, state0)
+  -- let allStates = iterate (step rules) (0, state0)
+  -- forM_ (take 500 (drop 500 allStates)) $ \(offset, state) -> putStrLn (show offset ++ ": " ++ prettyState state)
+  print $ crunkStar rules 50000000000 (0, state0)
 
 
 prettyState :: [Bool] -> String
@@ -32,12 +32,12 @@ match rules window
   | otherwise = maybe (error $ "Window not found: " ++ prettyState window) snd $ find ((== window) . fst) rules
 
 
-step :: [Rule] -> (Int, [Bool]) -> (Int, [Bool])
+step :: [Rule] -> (Integer, [Bool]) -> (Integer, [Bool])
 step rules (offset, state) = trim (offset - 2, go [] (pad ++ state ++ pad))
   where
     pad :: [Bool]
     pad = [False, False, False, False]
-    trim :: (Int, [Bool]) -> (Int, [Bool])
+    trim :: (Integer, [Bool]) -> (Integer, [Bool])
     trim (n, False:rest) = trim (n+1, rest)
     trim (n, startsTrue) = (n, reverse . dropWhile (== False) . reverse $ startsTrue)
     go :: [Bool] -> [Bool] -> [Bool]
@@ -45,13 +45,19 @@ step rules (offset, state) = trim (offset - 2, go [] (pad ++ state ++ pad))
     go out _ = reverse out
 
 
-sumIndices :: (Int, [Bool]) -> Int
+sumIndices :: (Integer, [Bool]) -> Integer
 sumIndices (offset, state) = sum . map fst . filter snd $ zip [offset..] state
 
 
-crunkStar :: [Rule] -> Integer -> (Int, [Bool]) -> Int
+crunkStar :: [Rule] -> Integer -> (Integer, [Bool]) -> Integer
 crunkStar _ 0 state = sumIndices state
-crunkStar rules n state = crunkStar rules (n-1) $ step rules state
+crunkStar rules fuel (offset, state)
+  | state == nextState = sumIndices (offset + fuel*(nextOffset-offset), state)
+  | otherwise = crunkStar rules (fuel-1) (nextOffset, nextState)
+  where
+    (nextOffset, nextState) = step rules (offset, state)
+
+
 
 
 prettyRule :: Rule -> String
