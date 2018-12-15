@@ -11,11 +11,15 @@ import ParseUtil
 import Data.List (find, group, sort, sortOn)
 
 type Loc = (Int, Int)
-data Turn = TurnLeft | TurnRight | Straight deriving (Show, Eq, Ord)
-data Direction = North | South | East | West deriving (Show, Eq, Ord)
+data Turn = TurnLeft | TurnRight | Straight deriving (Show, Eq)
+data Direction = North | South | East | West deriving (Show, Eq)
 
 data Track = Vert | Horiz | TurnBack | TurnFwd | Junction deriving (Show)
-data Cart = Cart Loc Direction Turn deriving (Show, Eq, Ord)
+data Cart = Cart Loc Direction Turn deriving (Show, Eq)
+
+
+instance Ord Cart where
+  compare (Cart (x1, y1) _ _) (Cart (x2, y2) _ _) = compare (y1, x1) (y2, x2)
 
 
 getCartLoc :: Cart -> Loc
@@ -25,19 +29,18 @@ run :: String -> IO ()
 run fileName = do
   input <- readFile fileName
   let (tracks, carts) = unsafeParse (parseBlocks (Map.empty, [])) fileName input
-  let stepper = stepTic (tracks Map.!)
-  print (Right carts :: Either Loc [Cart])
-  print $ findCrash stepper carts
+  print $ findCrash (tracks Map.!) carts
+  print . head . dropWhile ((> 1) . length) . iterate (stepTic (tracks Map.!)) $ carts
 
 
-findCrash :: ([Cart] -> Either Loc [Cart]) -> [Cart] -> Loc
-findCrash stepper carts = case stepper carts of
-                            (Left loc) -> loc
-                            (Right newCarts) -> findCrash stepper newCarts
+findCrash :: (Loc -> Track) -> [Cart] -> Loc
+findCrash getTrack carts = case stepTicCrash getTrack carts of
+                             (Left loc) -> loc
+                             (Right newCarts) -> findCrash getTrack newCarts
 
 
-stepTic :: (Loc -> Track) -> [Cart] -> Either Loc [Cart]
-stepTic getTrack inCarts = go [] (sortOn (\(Cart (x, y) _ _) -> (y, x)) inCarts)
+stepTicCrash :: (Loc -> Track) -> [Cart] -> Either Loc [Cart]
+stepTicCrash getTrack inCarts = go [] (sort inCarts)
   where
     go :: [Cart] -> [Cart] -> Either Loc [Cart]
     go done [] = return . reverse $ done
@@ -45,6 +48,18 @@ stepTic getTrack inCarts = go [] (sortOn (\(Cart (x, y) _ _) -> (y, x)) inCarts)
       where
         newCart = move getTrack cart
         maybeCollision = collisionLoc $ done ++ newCart:carts
+
+
+stepTic :: (Loc -> Track) -> [Cart] -> [Cart]
+stepTic getTrack carts0 = go [] (sort carts0)
+  where
+    go :: [Cart] -> [Cart] -> [Cart]
+    go done [] = reverse done
+    go done (cart:carts) = go (filter cartOk $ newCart:done) (filter cartOk carts)
+      where
+        newCart = move getTrack cart
+        maybeCollision = collisionLoc $ done ++ newCart:carts
+        cartOk (Cart loc _ _) = Just loc /= maybeCollision
 
 
 move :: (Loc -> Track) -> Cart -> Cart
