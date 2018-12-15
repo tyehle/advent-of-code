@@ -6,6 +6,8 @@ import Data.List (sort, find)
 import Text.Parsec
 import Text.Parsec.Char
 
+import ParseUtil
+
 
 type Rule = ([Bool], Bool)
 
@@ -58,14 +60,8 @@ crunkStar rules fuel (offset, state)
     (nextOffset, nextState) = step rules (offset, state)
 
 
-
-
 prettyRule :: Rule -> String
 prettyRule (pat, to) = prettyState pat ++ " => " ++ prettyState [to]
-
-
-unsafeParse :: Parsec String () a -> SourceName -> String -> a
-unsafeParse parser file = either (error . show) id . parse parser file
 
 
 parseInput :: Parsec String () ([Bool], [Rule])
