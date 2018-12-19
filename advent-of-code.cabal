@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 48b998559b0cb38559c3e4dda84ec23eee6bcddb37a7cf6bb3356dd76215e076
+-- hash: ebe5ac6c90e376910226a5a0a2e8fa6b714fac0a70eb8daa6bc2acb86316d898
 
 name:           advent-of-code
 version:        0.1.0.0
@@ -73,6 +73,7 @@ library
     , plot
     , split
     , time
+    , unbounded-delays
   default-language: Haskell2010
 
 executable advent

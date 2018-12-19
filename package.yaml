@@ -36,6 +36,7 @@ library:
   - plot
   - Chart
   - Chart-cairo
+  - unbounded-delays
 
 executables:
   advent:
