@@ -78,7 +78,7 @@ crunchyStar cave initialUnits = (rounds, sum (fmap getHP finalUnits))
 
     go :: (Int, Seq Unit) -> (Int, Seq Unit)
     go (n, units)
-      | oneTeam units = (n, units)
+      | oneTeam units = (n-1, units)
       | otherwise = go (n+1, step cave units)
 
 
