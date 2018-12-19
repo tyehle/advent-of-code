@@ -40,7 +40,7 @@ runInteraction render shuffle step initial = do
     go _ _ [] = clearLine
 
     -- quit
-    go _ _ ('q':xs) = clearLine
+    go _ _ ('q':_) = clearLine
 
     -- step
     go _ (prevState:prevStates) ('j':xs) = reset ++ render nextState ++ go [nextState] nextStates xs

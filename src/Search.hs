@@ -2,12 +2,33 @@
 
 module Search where
 
-import Data.Foldable (find)
+import Data.Foldable (find, foldl')
+import Data.List (sort)
 import Data.Maybe (fromMaybe, fromJust, isNothing)
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Data.PSQueue (PSQ)
 import qualified Data.PSQueue as PQ
+import Data.Set (Set)
+import qualified Data.Set as Set
+
+bfs :: forall a. Ord a => (a -> [a]) -> (a -> Bool) -> a -> [[a]]
+bfs step done initial = reverse <$> go Set.empty [[initial]]
+  where
+    validStep :: Set a -> a -> [a]
+    validStep visited = filter (not . (`Set.member` visited)) . step
+    advance :: Set a -> [a] -> [[a]]
+    advance visited path = [now:path | now <- validStep visited  (head path)]
+    go :: Set a -> [[a]] -> [[a]]
+    go _ [] = []
+    go visited fringe
+      | not (null finishedPaths) = finishedPaths
+      | otherwise = go visited' fringe'
+      where
+        finishedPaths = filter (done . head) fringe
+        (visited', fringe') = foldl' explorePath (visited, []) (sort fringe)
+        explorePath :: (Set a, [[a]]) -> [a] -> (Set a, [[a]])
+        explorePath (visited', fringe') path = let
+          newPaths = advance visited' path
+          in (visited' `Set.union` Set.fromList (map head newPaths), newPaths ++ fringe')
 
 breadthFirst :: Ord a => (a -> [a]) -> (a -> Bool) -> a -> [a]
 breadthFirst step done initial = runBFS step done Set.empty [[initial]]
@@ -33,8 +54,6 @@ runAStar step close done visited fringe
   | (done . head) smallest = Just smallest
   | otherwise = runAStar step close done visited' fringe'
   where
-
-    -- (Just (k PQ.:-> p, fringe')) = PQ.minView fringe
     smallest :: [a]
     smallest = PQ.key . fromJust . PQ.findMin $ fringe
 
