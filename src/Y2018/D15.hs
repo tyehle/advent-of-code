@@ -50,25 +50,41 @@ changeHP how (Unit loc team hp) = Unit loc team (how hp)
 run :: String -> IO ()
 run fileName = do
   (cave, units) <- unsafeParse parseWorld fileName <$> readFile fileName
-  -- putStrLn $ prettyWorld (cave, units)
-  -- delay 1000000
-  -- putStr "\ESC[32F\ESC[J"
-  -- putStrLn $ prettyWorld (changeTeams (cave, units))
-  runInteraction (prettyWorld cave . snd) (safeMoveUnit cave) (step' cave) (0, Seq.unstableSort units)
-  let (rounds, hp) = crunchyStar cave units
+
+  -- doInteraction cave 3 units
+  let (rounds, winners) = crunchyStar cave (const 3) units
+      hp = sum $ fmap getHP winners
   putStrLn $ show rounds ++ " * " ++ show hp ++ " = " ++ show (rounds * hp)
+
+  let (elfPower, elfRounds, elves) = splendidStar cave units
+      elfHP = sum $ fmap getHP winners
+  putStrLn $ show elfRounds ++ " * " ++ show elfHP ++ " = " ++ show (elfRounds * elfHP)
+  doInteraction cave elfPower units
+
   where
-    step' :: Cave -> (Int, Seq Unit) -> (Int, Seq Unit)
-    step' cave (0, units) = (0, step cave units)
+    step' :: Cave -> (Team -> Int) -> (Int, Seq Unit) -> (Int, Seq Unit)
+    step' cave power (0, units) = (0, step cave power units)
 
-    safeMoveUnit :: Cave -> (Int, Seq Unit) -> (Int, Seq Unit)
-    safeMoveUnit cave (i, units)
+    safeMoveUnit :: Cave -> (Team -> Int) -> (Int, Seq Unit) -> (Int, Seq Unit)
+    safeMoveUnit cave power (i, units)
       | i >= Seq.length units = (i, units)
-      | otherwise = moveUnit cave (i, units)
+      | otherwise = moveUnit cave power (i, units)
+
+    power :: Int -> Team -> Int
+    power _ Goblin = 3
+    power p Elf = p
+
+    doInteraction :: Cave -> Int -> Seq Unit -> IO ()
+    doInteraction cave elfPower units = runInteraction pretty shuffle step (0, Seq.unstableSort units)
+      where
+        pretty = prettyWorld cave . snd
+        shuffle = safeMoveUnit cave (power elfPower)
+        step = step' cave (power elfPower)
 
 
-crunchyStar :: Cave -> Seq Unit -> (Int, Int)
-crunchyStar cave initialUnits = (rounds, sum (fmap getHP finalUnits))
+
+crunchyStar :: Cave -> (Team -> Int) -> Seq Unit -> (Int, Seq Unit)
+crunchyStar cave power initialUnits = (rounds, finalUnits)
   where
     (rounds, finalUnits) = go (0, initialUnits)
 
@@ -79,21 +95,41 @@ crunchyStar cave initialUnits = (rounds, sum (fmap getHP finalUnits))
     go :: (Int, Seq Unit) -> (Int, Seq Unit)
     go (n, units)
       | oneTeam units = (n-1, units)
-      | otherwise = go (n+1, step cave units)
+      | otherwise = go (n+1, step cave power units)
 
 
+splendidStar :: Cave -> Seq Unit -> (Int, Int, Seq Unit)
+splendidStar cave initialUnits = go 3
+  where
+    power :: Int -> Team -> Int
+    power _ Goblin = 3
+    power p Elf = p
 
-step :: Cave -> Seq Unit -> Seq Unit
-step cave = Seq.unstableSort . go 0 . Seq.unstableSort
+    initialElves :: Int
+    initialElves = Seq.length . Seq.filter ((== Elf) . getTeam) $ initialUnits
+
+    allElvesAlive :: Seq Unit -> Bool
+    allElvesAlive = (== initialElves) . Seq.length . Seq.filter ((== Elf) . getTeam)
+
+    go :: Int -> (Int, Int, Seq Unit)
+    go elfPower
+      | allElvesAlive winners = (elfPower, rounds, winners)
+      | otherwise = go (elfPower + 1)
+      where
+        (rounds, winners) = crunchyStar cave (power elfPower) initialUnits
+
+
+step :: Cave -> (Team -> Int) -> Seq Unit -> Seq Unit
+step cave power = Seq.unstableSort . go 0 . Seq.unstableSort
   where
     go :: Int -> Seq Unit -> Seq Unit
     go i units
       | i >= Seq.length units = units
-      | otherwise = let (i', units') = moveUnit cave (i, units) in go i' units'
+      | otherwise = let (i', units') = moveUnit cave power (i, units) in go i' units'
 
 
-moveUnit :: Cave -> (Int, Seq Unit) -> (Int, Seq Unit)
-moveUnit cave (i, units) = case attackWho (getLoc me) of
+moveUnit :: Cave -> (Team -> Int) -> (Int, Seq Unit) -> (Int, Seq Unit)
+moveUnit cave power (i, units) = case attackWho (getLoc me) of
   (Just who) -> attack who units
 
   Nothing -> case moveWhere of
@@ -125,7 +161,7 @@ moveUnit cave (i, units) = case attackWho (getLoc me) of
       | dead hurtUnit = (if who < i then i else i+1, Seq.deleteAt who units')
       | otherwise = (i+1, Seq.update who hurtUnit units')
       where
-        hurtUnit = changeHP (subtract 3) (Seq.index units' who)
+        hurtUnit = changeHP (subtract (power (getTeam me))) (Seq.index units' who)
 
 
     moveWhere :: Maybe Loc

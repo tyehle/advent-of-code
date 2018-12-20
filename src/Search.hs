@@ -24,7 +24,7 @@ bfs step done initial = reverse <$> go Set.empty [[initial]]
       | otherwise = go visited' fringe'
       where
         finishedPaths = filter (done . head) fringe
-        (visited', fringe') = foldl' explorePath (visited, []) (sort fringe)
+        (visited', fringe') = foldl' explorePath (visited, []) ((map reverse . sort . map reverse) fringe)
         explorePath :: (Set a, [[a]]) -> [a] -> (Set a, [[a]])
         explorePath (visited', fringe') path = let
           newPaths = advance visited' path
