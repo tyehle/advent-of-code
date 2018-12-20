@@ -57,7 +57,7 @@ run fileName = do
   putStrLn $ show rounds ++ " * " ++ show hp ++ " = " ++ show (rounds * hp)
 
   let (elfPower, elfRounds, elves) = splendidStar cave units
-      elfHP = sum $ fmap getHP winners
+      elfHP = sum $ fmap getHP elves
   putStrLn $ show elfRounds ++ " * " ++ show elfHP ++ " = " ++ show (elfRounds * elfHP)
   doInteraction cave elfPower units
 
@@ -239,7 +239,7 @@ prettyWorld cave units = go [] [] 0 0 [] (Seq.sort units)
         in go rows partialRow' (x+1) y unitsInRow' remainingUnits'
 
       | otherwise =
-        let newChar = if Set.member (Loc (x, y)) cave then " " else "\ESC[38;5;8m#\ESC[0m"
+        let newChar = if Set.member (Loc (x, y)) cave then "\ESC[38;5;8m.\ESC[0m" else "\ESC[38;5;8m#\ESC[0m"
         in go rows (newChar:partialRow) (x+1) y unitsInRow remainingUnits
 
 
