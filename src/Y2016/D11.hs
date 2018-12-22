@@ -76,7 +76,7 @@ findIndex c xs = fst <$> find (\(_,x) -> c x) (assocs xs)
 
 
 aStarPath :: State -> [State]
-aStarPath = aStar (filter isValid . allMoves) howClose isDone
+aStarPath = fromJust . aStar (filter isValid . allMoves) howClose isDone
 
 allMoves :: State -> [State]
 allMoves s = [doMove ents floorTo | ents <- movableItems, floorTo <- adjacentFloors]

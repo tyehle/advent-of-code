@@ -24,8 +24,8 @@ run fileName = do
       initialState = (Set.empty, Set.empty, [(500,0)])
       finalState@(water, flow, _) = fix (step clay) initialState
       allWater = Set.filter ((>= top) . snd) $ Set.union flow water
-  runInteraction (prettyState clay) id (step clay) initialState
-  -- putStrLn $ prettyState clay finalState
+  -- runInteraction (prettyState clay) id (step clay) initialState
+  putStrLn $ prettyState clay finalState
   print $ Set.size allWater
   print $ Set.size water
   where
