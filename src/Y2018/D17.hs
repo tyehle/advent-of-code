@@ -24,8 +24,8 @@ run fileName = do
       initialState = (Set.empty, Set.empty, [(500,0)])
       finalState@(water, flow, _) = fix (step clay) initialState
       allWater = Set.filter ((>= top) . snd) $ Set.union flow water
-  -- runInteraction (prettyState clay) id (step clay) initialState
-  putStrLn $ prettyState clay finalState
+  runInteraction (prettyState clay) id (step clay) initialState
+  -- putStrLn $ prettyState clay finalState
   print $ Set.size allWater
   print $ Set.size water
   where
@@ -38,6 +38,7 @@ fix f x
   | otherwise = fix f next
   where
     next = f x
+
 
 
 step :: Set Loc -> (Set Loc, Set Loc, [Loc]) -> (Set Loc, Set Loc, [Loc])
@@ -86,7 +87,7 @@ step clay (water, flow, fringe) = go (water, flow, []) (map head . group . sort 
 prettyWorld :: Set Loc -> Set Loc -> Set Loc -> String
 prettyWorld clay water flow = unlines $ firstRow : go [] [] left 1
   where
-    bottom = (+1) . maximum . map snd . Set.toList $ clay
+    bottom = maximum . map snd . Set.toList $ clay
     left   = subtract 1 . minimum . map fst . Set.toList $ clay
     right  = (+1) . maximum . map fst . Set.toList $ clay
 

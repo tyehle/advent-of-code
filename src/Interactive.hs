@@ -20,7 +20,7 @@ runInteraction render shuffle step initial = do
     initialRender = render initial
 
     reset :: String
-    reset = "\ESC[" ++ show (length (lines initialRender) - 1) ++ "F\ESC[J"
+    reset = "\ESC[" ++ show (length (lines initialRender)) ++ "F\ESC[J"
 
     clearLine :: String
     clearLine = "\ESC[2K\ESC[G"

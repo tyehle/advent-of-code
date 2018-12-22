@@ -1,6 +1,5 @@
 module Y2018.D15 where
 
-import Control.Concurrent.Thread.Delay
 import Data.Functor (($>))
 import Data.List (sort, groupBy)
 import Data.Set (Set)
@@ -29,10 +28,6 @@ enemy Goblin = Elf
 run :: String -> IO ()
 run fileName = do
   (cave, units) <- unsafeParse parseWorld fileName <$> readFile fileName
-  -- putStrLn $ prettyWorld (cave, units)
-  -- delay 1000000
-  -- putStr "\ESC[32F\ESC[J"
-  -- putStrLn $ prettyWorld (changeTeams (cave, units))
   runInteraction prettyWorld damage changeTeams (cave, units)
   where
     changeTeams (cave, units) = (cave, map (\(Unit t hp loc) -> Unit (enemy t) hp loc) units)
@@ -65,7 +60,7 @@ prettyWorld (cave, units) = go [] [] 0 0 [] (sort units)
 
     go :: [String] -> [String] -> Int -> Int -> [Unit] -> [Unit] -> String
     go rows partialRow x y unitsInRow remainingUnits
-      | y > height+1 = init . unlines . reverse $ rows
+      | y > height+1 = unlines . reverse $ rows
 
       | x > width+1 =
         let fullRow = concat $ reverse partialRow
