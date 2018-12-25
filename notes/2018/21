@@ -1,0 +1,60 @@
+         0    seti    123                     %4        --
+         1    bani    %4          456         %4        --
+         2    eqri    %4          72          %4        --
+         3    addr    %4          IP          IP        --
+         4    seti    0                       IP        --
+         5    seti    0                       %4        --
+loop0:
+         6    bori    %4          65536       %3        -- %3 = 65536 | %4
+         7    seti    12670166                %4        -- %4 = 12670166
+loop1:
+         8    bani    %3          255         %2        -- %2 = 0xFF & %3
+         9    addr    %4          %2          %4        -- %4 += %2
+        10    bani    %4          16777215    %4        -- %4 &= 0xFFFFFF
+        11    muli    %4          65899       %4        -- %4 *= 65899
+        12    bani    %4          16777215    %4        -- %4 &= 0xFFFFFF
+
+        13    gtir    256         %3          %2        -- %2 = 256 > %3        if %3 < 256 then jump check
+        14    addr    %2          IP          IP        -- cond %2 skip
+        15    addi    IP          1           IP        -- skip
+        16    seti    27                      IP        -- jump 28
+
+        17    seti    0                       %2        -- %2 = 0               %2 = 0
+loop2:
+        18    addi    %2          1           %5        -- %5 = %2 + 1          %5 = (%2+1) * 256
+        19    muli    %5          256         %5        -- %5 *= 256
+
+        20    gtrr    %5          %3          %5        -- %5 = %5 > %3         if %5 > %3 then jump 26
+        21    addr    %5          IP          IP        -- cond %5 skip
+        22    addi    IP          1           IP        -- skip
+        23    seti    25                      IP        -- jump 26
+
+        24    addi    %2          1           %2        -- %2 ++                %2++; goto loop2
+        25    seti    17                      IP        -- jump 18
+
+        26    setr    %2                      %3        -- %3 = %2              %3 = %2; goto loop1
+        27    seti    7                       IP        -- jump 8
+check:
+        28    eqrr    %4          %0          %2        --                      if %0 == %4 then exit else jump loop0
+        29    addr    %2          IP          IP        --
+        30    seti    5                       IP        -- jump 6
+
+
+
+# do some checking
+
+r3 = 65536
+r4 = 12670166
+
+while True:
+
+    r4 = (((r4 + (0xFF & r3)) & 0xFFFFFF) * 65899) & 0xFFFFFF
+
+    if r3 < 256:
+        if r0 == r4:
+            exit()
+        else:
+            r3 = 65536 | r4
+            r4 = 12670166
+    else:
+        r3 = r3 >> 8
