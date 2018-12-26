@@ -3,6 +3,7 @@
 module Search where
 
 import Data.Foldable (find, foldl')
+import Data.Functor (($>))
 import Data.List (sort)
 import Data.Maybe (fromMaybe, fromJust, isNothing)
 import Data.PSQueue (PSQ)
@@ -10,25 +11,34 @@ import qualified Data.PSQueue as PQ
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-bfs :: forall a. Ord a => (a -> [a]) -> (a -> Bool) -> a -> [[a]]
-bfs step done initial = reverse <$> go Set.empty [[initial]]
+
+bfsM :: forall m a. (Ord a, Applicative m) => (a -> [a]) -> ([[a]] -> m ()) -> a -> m ()
+bfsM step finishPaths initial = go Set.empty [[initial]]
   where
-    validStep :: Set a -> a -> [a]
-    validStep visited = filter (not . (`Set.member` visited)) . step
-    advance :: Set a -> [a] -> [[a]]
-    advance visited path = [now:path | now <- validStep visited  (head path)]
-    go :: Set a -> [[a]] -> [[a]]
-    go _ [] = []
-    go visited fringe
-      | not (null finishedPaths) = finishedPaths
-      | otherwise = go visited' fringe'
+      validStep :: Set a -> a -> [a]
+      validStep visited = filter (not . (`Set.member` visited)) . step
+      advance :: Set a -> [a] -> [[a]]
+      advance visited path = [now:path | now <- validStep visited  (head path)]
+      go :: Set a -> [[a]] -> m ()
+      go _ [] = pure ()
+      go visited fringe = finishPaths fringe *> go visited' fringe'
+        where
+          (visited', fringe') = foldl' explorePath (visited, []) ((map reverse . sort . map reverse) fringe)
+          explorePath :: (Set a, [[a]]) -> [a] -> (Set a, [[a]])
+          explorePath (visited', fringe') path = let
+            newPaths = advance visited' path
+            in (visited' `Set.union` Set.fromList (map head newPaths), newPaths ++ fringe')
+
+
+bfs :: Ord a => (a -> [a]) -> (a -> Bool) -> a -> [[a]]
+bfs step done initial = either id (const []) $ bfsM step finishPaths initial
+  where
+    finishPaths paths
+      | not (null finishedPaths) = Left finishedPaths
+      | otherwise = Right ()
       where
-        finishedPaths = filter (done . head) fringe
-        (visited', fringe') = foldl' explorePath (visited, []) ((map reverse . sort . map reverse) fringe)
-        explorePath :: (Set a, [[a]]) -> [a] -> (Set a, [[a]])
-        explorePath (visited', fringe') path = let
-          newPaths = advance visited' path
-          in (visited' `Set.union` Set.fromList (map head newPaths), newPaths ++ fringe')
+        finishedPaths = filter (done . head) paths
+
 
 breadthFirst :: Ord a => (a -> [a]) -> (a -> Bool) -> a -> [a]
 breadthFirst step done initial = runBFS step done Set.empty [[initial]]
