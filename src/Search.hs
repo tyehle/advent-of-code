@@ -52,12 +52,12 @@ runBFS step done visited fringe = fromMaybe recur $ find (done . head) fringe
     fringe' = concatMap advance fringe
     recur = runBFS step done visited' fringe'
 
-aStar :: (Ord a, Ord b) => (a -> [a]) -> (a -> b) -> (a -> Bool) -> a -> Maybe [a]
+aStar :: (Ord a) => (a -> [a]) -> (a -> Int) -> (a -> Bool) -> a -> Maybe [a]
 aStar step close done initial = reverse <$> runAStar step close done Set.empty queue
   where
     queue = PQ.singleton [initial] (close initial)
 
-runAStar :: forall a b. (Ord a, Ord b) => (a -> [a]) -> (a -> b) -> (a -> Bool) -> Set a -> PSQ [a] b -> Maybe [a]
+runAStar :: forall a. (Ord a) => (a -> [a]) -> (a -> Int) -> (a -> Bool) -> Set a -> PSQ [a] Int -> Maybe [a]
 runAStar step close done visited fringe
   | isNothing $ PQ.findMin fringe = Nothing
   | Set.member (head smallest) visited = runAStar step close done visited (PQ.deleteMin fringe)
@@ -76,6 +76,6 @@ runAStar step close done visited fringe
     advance :: [a] -> [[a]]
     advance history = [s:history | s <- validStep (head history)]
 
-    newBindings = map (\path -> (path, (close . head) path)) (advance smallest)
+    newBindings = map (\path -> (path, length path + close (head path))) (advance smallest)
 
     fringe' = foldr (uncurry PQ.insert) (PQ.deleteMin fringe) newBindings
