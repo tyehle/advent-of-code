@@ -37,6 +37,7 @@ library:
   - Chart
   - Chart-cairo
   - unbounded-delays
+  - hmatrix
 
 executables:
   advent:

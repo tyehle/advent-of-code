@@ -1,6 +1,6 @@
 module ParseUtil
   ( unsafeParse
-  , nat
+  , nat, int
   ) where
 
 
@@ -13,3 +13,6 @@ unsafeParse parser file = either (error . show) id . parse parser file
 
 nat :: Parsec String a Int
 nat = read <$> many1 digit
+
+int :: Parsec String a Int
+int = char '-' *> (negate <$> nat) <|> nat

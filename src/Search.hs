@@ -52,6 +52,7 @@ runBFS step done visited fringe = fromMaybe recur $ find (done . head) fringe
     fringe' = concatMap advance fringe
     recur = runBFS step done visited' fringe'
 
+
 aStar :: (Ord a) => (a -> [a]) -> (a -> Int) -> (a -> Bool) -> a -> Maybe [a]
 aStar step close done initial = reverse <$> runAStar step close done Set.empty queue
   where
