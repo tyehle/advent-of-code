@@ -9,8 +9,6 @@ import Data.Maybe (isNothing, fromMaybe)
 import Data.Ord (comparing)
 import Text.Parsec
 
-import Debug.Trace
-
 import ParseUtil
 
 data Group = Group { units :: Int
@@ -32,9 +30,9 @@ run :: String -> IO ()
 run fileName = do
   initial@(immune, infect) <- unsafeParse parseInput fileName <$> readFile fileName
   print $ part1 initial
+  print $ part2 initial
 
 
--- 14938 -> too high
 part1 :: ([Group], [Group]) -> Int
 part1 state@(a,b)
   | null a = sum . map units $ b
@@ -42,23 +40,54 @@ part1 state@(a,b)
   | otherwise = part1 $ step state
 
 
+part2 :: ([Group], [Group]) -> Int
+part2 initial = sum . map units . fst . fix step . flip boost initial $ go (1, Nothing)
+  where
+    go :: (Int, Maybe Int) -> Int
+    go (lower, Nothing)
+      | win (boost amount initial) = go (lower, Just amount)
+      | otherwise = go (amount, Nothing)
+      where
+        amount = lower*2
+    go (lower, Just upper)
+      | (upper - lower) == 1 = upper
+      | won       = go (lower, Just amount)
+      | otherwise = go (amount, Just upper)
+      where
+        amount = ((upper - lower) `div` 2) + lower
+        won = win (boost amount initial)
+
+    boost :: Int -> ([Group], [Group]) -> ([Group], [Group])
+    boost n (immune, infect) = (map (\g -> g{attack = n + attack g}) immune, infect)
+
+    win :: ([Group], [Group]) -> Bool
+    win = null . snd . fix step
+
+
+fix :: Eq a => (a -> a) -> a -> a
+fix f x
+  | next == x = next
+  | otherwise = fix f next
+  where next = f x
+
+
 step :: ([Group], [Group]) -> ([Group], [Group])
 step gs = runAttack (selectTargets gs) gs
 
 
 runAttack :: Map Group Group -> ([Group], [Group]) -> ([Group], [Group])
-runAttack targets (a, b) = trace debugString (applyDamages a, applyDamages b)
+runAttack targets (a, b) = (applyDamages a, applyDamages b)
   where
-    debugString = "----------\n" ++
-      "Immune System:\n" ++
-      unlines (map show (sortBy (flip $ comparing effectivePower) a)) ++
-      "\nInfection:\n" ++
-      unlines (map show (sortBy (flip $ comparing effectivePower) b)) ++
-      "\nTargets:\n" ++
-      (unlines . map (\(a,d) -> show (units a) ++ "\t->\t" ++ show (units d)) $ Map.toList targets) ++
-      "\nDamage:\n" ++
-      (unlines . map (\(g,k) -> show k ++ "\t/\t" ++ show (units g)) $ Map.toList allDamage) ++
-      "\n----------"
+    -- debugString = "----------\n" ++
+    --   "Immune System:\n" ++
+    --   unlines (map show (sortBy (flip $ comparing effectivePower) a)) ++
+    --   "\nInfection:\n" ++
+    --   unlines (map show (sortBy (flip $ comparing effectivePower) b)) ++
+    --   "\nTargets:\n" ++
+    --   (unlines . map (\(a,d) -> show (units a) ++ "\t->\t" ++ show (units d)) $ Map.toList targets) ++
+    --   "\nDamage:\n" ++
+    --   (unlines . map (\(g,k) -> show k ++ "\t/\t" ++ show (units g)) $ Map.toList allDamage) ++
+    --   "\n----------"
 
     applyDamages :: [Group] -> [Group]
     applyDamages = filter ((> 0) . units) . map (\g -> maybe g (kill g) $ allDamage !? g)
