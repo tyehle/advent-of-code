@@ -1,5 +1,6 @@
 module Y2015.D01 where
 
+import Data.List (elemIndex)
 import Data.Foldable (foldl')
 
 run :: String -> IO ()
