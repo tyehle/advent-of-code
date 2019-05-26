@@ -2,7 +2,7 @@ module Main where
 
 import System.IO (hFlush, stdout)
 
-import Y2018.D25
+import Y2015.D01
 
 main :: IO ()
 main = do
