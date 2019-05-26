@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 647a2f48d12093800c6731024a7504ecabd30d6b953381bc395648535e199ade
+-- hash: d81a6535e362abfe8cb4c988b67b035a1ffb67e1ae535b9d8d4c0f29bb9cd9f7
 
 name:           advent-of-code
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       ParseUtil
       Search
       Y2015.D01
+      Y2015.D02
       Y2016.D01
       Y2016.D02
       Y2016.D03
