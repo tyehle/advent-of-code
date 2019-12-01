@@ -1,9 +1,13 @@
 use std::fs;
 
+
+/// Fuel for a given mass
 fn fuel_for(mass: i32) -> i32 {
     mass / 3 - 2
 }
 
+
+/// Total fuel for a module
 fn module_fuel(mass: i32) -> i32 {
     let mut total = 0;
     let mut current = fuel_for(mass);
@@ -14,6 +18,8 @@ fn module_fuel(mass: i32) -> i32 {
     total
 }
 
+
+/// Read the puzzle input
 fn parse_input(path: &str) -> Vec<i32> {
     fs::read_to_string(path)
         .unwrap()
@@ -22,11 +28,13 @@ fn parse_input(path: &str) -> Vec<i32> {
         .collect()
 }
 
+
 fn main() {
     let input = parse_input("input.txt");
     println!("{}", input.iter().map(|m| fuel_for(*m)).sum::<i32>());
     println!("{}", input.iter().map(|m| module_fuel(*m)).sum::<i32>());
 }
+
 
 #[cfg(test)]
 mod tests {
