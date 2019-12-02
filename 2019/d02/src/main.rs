@@ -1,4 +1,5 @@
 use std::fs;
+use std::collections::HashMap;
 
 fn parse() -> Vec<usize> {
     fs::read_to_string("input.txt")
@@ -9,26 +10,45 @@ fn parse() -> Vec<usize> {
         .collect()
 }
 
-fn execute(mem: &mut Vec<usize>) {
-    let mut pc = 0;
+fn build_dispatch_table() -> HashMap<usize, impl Fn(&mut usize, &mut Vec<usize>) -> ()> {
+    fn binop(op: fn(usize, usize) -> usize) -> impl Fn(&mut usize, &mut Vec<usize>) -> () {
+        move |pc, mem| {
+            let a = mem[mem[*pc + 1]];
+            let b = mem[mem[*pc + 2]];
+            let store = mem[*pc + 3];
 
-    loop {
-        if mem[pc] == 99 {
-            return;
+            mem[store] = op(a, b);
+
+            *pc += 4;
         }
-
-        let a = mem[mem[pc + 1]];
-        let b = mem[mem[pc + 2]];
-        let store = mem[pc + 3];
-
-        match mem[pc] {
-            1 => mem[store] = a + b,
-            2 => mem[store] = a * b,
-            bad => println!("Bad instruction at {}: {}", pc, bad),
-        }
-
-        pc += 4
     }
+
+    let mut instructions = HashMap::<usize, _>::new();
+    instructions.insert(1, binop(|a, b| a+b));
+    instructions.insert(2, binop(|a, b| a*b));
+
+    instructions
+}
+
+fn step(ops: &HashMap<usize, impl Fn(&mut usize, &mut Vec<usize>) -> ()>, pc: &mut usize, mem: &mut Vec<usize>) -> bool {
+    let opcode = mem[*pc];
+
+    if opcode == 99 {
+        false
+    } else {
+        match ops.get(&opcode) {
+            Some(op) => op(pc, mem),
+            None => panic!("Bad instruction at {}: {}", pc, opcode),
+        }
+        true
+    }
+}
+
+fn execute(mem: &mut Vec<usize>) {
+    let instructions = build_dispatch_table();
+
+    let mut pc = 0;
+    while step(&instructions, &mut pc, mem) {}
 }
 
 fn execute_params(a: usize, b: usize, prog: &Vec<usize>) -> Vec<usize> {
@@ -43,7 +63,6 @@ fn find_inputs(target: usize, prog: &Vec<usize>) -> Option<(usize, usize)> {
     for a in 0..99 {
         for b in 0..99 {
             if execute_params(a, b, prog)[0] == target {
-                println!("a: {}, b: {}, 100a+b: {}", a, b, 100 * a + b);
                 return Some((a, b));
             }
         }
@@ -61,8 +80,6 @@ fn main() {
         Some((a, b)) => println!("a: {}, b: {}, 100a+b: {}", a, b, 100 * a + b),
         None => println!("No result"),
     }
-
-    // find_inputs(19690720, &input);
 }
 
 #[cfg(test)]
