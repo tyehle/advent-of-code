@@ -1,64 +1,49 @@
-use std::fs;
+use num_complex::Complex;
 use std::collections::{HashMap, HashSet};
+use std::fs;
 use std::iter::FromIterator;
 
-fn parse() -> Vec<Vec<String>> {
+struct Strand {
+    dir: Complex<i32>,
+    len: i32,
+}
+
+fn parse_strand(s: &str) -> Strand {
+    let dir = match &s[..1] {
+        "U" => Complex::new(0, 1),
+        "D" => Complex::new(0, -1),
+        "R" => Complex::new(1, 0),
+        "L" => Complex::new(-1, 0),
+        bad => panic!("Unknown direction: {}", bad),
+    };
+
+    let len = &s[1..].parse().unwrap();
+
+    Strand { dir, len: *len }
+}
+
+fn parse() -> Vec<Vec<Strand>> {
     fs::read_to_string("input.txt")
         .unwrap()
         .trim()
         .lines()
-        .map(|l| l.trim().split(",").map(String::from).collect())
+        .map(|l| l.trim().split(',').map(parse_strand).collect())
         .collect()
 }
 
-fn parse_part(part: &String) -> (char, i32) {
-    (part.chars().next().unwrap(), part[1..].parse().unwrap())
-}
-
-fn ocupied(wire: &Vec<String>) -> HashMap<(i32, i32), i32> {
+fn ocupied<'a, I>(wire: I) -> HashMap<Complex<i32>, i32>
+where
+    I: IntoIterator<Item = &'a Strand>,
+{
     let mut map = HashMap::new();
-    let mut x = 0;
-    let mut y = 0;
-    let mut len = 1;
-
-    fn update(x: i32, y: i32, map: &mut HashMap<(i32, i32), i32>, len: &mut i32) {
-        if !map.contains_key(&(x, y)) {
-            map.insert((x, y), len.clone());
-        }
-        *len += 1
-    }
+    let mut len = 0;
+    let mut loc = Complex::new(0, 0);
 
     for op in wire {
-        match parse_part(op) {
-            ('U', n) => {
-                for i in 1..n+1 {
-                    update(x, y+i, &mut map, &mut len);
-                }
-                y += n
-            },
-
-            ('D', n) => {
-                for i in 1..n+1 {
-                    update(x, y-i, &mut map, &mut len);
-                }
-                y -= n
-            },
-
-            ('R', n) => {
-                for i in 1..n+1 {
-                    update(x+i, y, &mut map, &mut len);
-                }
-                x += n
-            },
-
-            ('L', n) => {
-                for i in 1..n+1 {
-                    update(x-i, y, &mut map, &mut len);
-                }
-                x -= n
-            }
-
-            (bad, _) => panic!("Bad direction: {}", bad),
+        for _i in 1..=op.len {
+            loc += op.dir;
+            len += 1;
+            map.entry(loc).or_insert(len);
         }
     }
 
@@ -73,12 +58,12 @@ fn main() {
     let oa = ocupied(a);
     let ob = ocupied(b);
 
-    let aset: HashSet<(i32, i32)> = HashSet::from_iter(oa.keys().cloned());
+    let aset: HashSet<Complex<i32>> = HashSet::from_iter(oa.keys().cloned());
     let bset = HashSet::from_iter(ob.keys().cloned());
 
-    let mut inter: Vec<&(i32, i32)> = aset.intersection(&bset).collect();
+    let mut inter: Vec<&Complex<i32>> = aset.intersection(&bset).collect();
 
-    inter.sort_by_key(|(a, b)| a.abs() + b.abs());
+    inter.sort_by_key(|c| c.re.abs() + c.im.abs());
 
     println!("Closest jump: {:?}", inter[0]);
 
@@ -94,24 +79,33 @@ mod test {
 
     #[test]
     fn test_ocupied() {
-        let o = dbg!(ocupied(&vec!["R8".to_owned(), "U5".to_owned(), "L5".to_owned(), "D6".to_owned()]));
-        assert_eq!(*o.get(&(3, 0)).unwrap(), 3);
+        let wire: Vec<Strand> = "R8,U5,L5,D6".split(",").map(parse_strand).collect();
+        let o = dbg!(ocupied(&wire));
+        assert_eq!(*o.get(&Complex::new(3, 0)).unwrap(), 3);
     }
 
     #[test]
     fn test_len() {
-        let a = &"R75,D30,R83,U83,L12,D49,R71,U7,L72".split(",").map(String::from).collect();
-        let b = &"U62,R66,U55,R34,D71,R55,D58,R83".split(",").map(String::from).collect();
+        let a: Vec<Strand> = "R75,D30,R83,U83,L12,D49,R71,U7,L72"
+            .split(",")
+            .map(parse_strand)
+            .collect();
+        let b: Vec<Strand> = "U62,R66,U55,R34,D71,R55,D58,R83"
+            .split(",")
+            .map(parse_strand)
+            .collect();
 
-        let oa = ocupied(a);
-        let ob = ocupied(b);
+        let oa = ocupied(&a);
+        let ob = ocupied(&b);
 
-        let aset: HashSet<(i32, i32)> = HashSet::from_iter(oa.keys().cloned());
+        let aset: HashSet<Complex<i32>> = HashSet::from_iter(oa.keys().cloned());
         let bset = HashSet::from_iter(ob.keys().cloned());
 
-        let mut inter: Vec<&(i32, i32)> = aset.intersection(&bset).collect();
+        let mut inter: Vec<&Complex<i32>> = aset.intersection(&bset).collect();
 
-        inter.sort_by_key(|(a, b)| a.abs() + b.abs());
+        inter.sort_by_key(|c| c.l1_norm());
+
+        assert_eq!(inter[0].l1_norm(), 159);
 
         println!("Closest jump: {:?}", inter[0]);
 
@@ -120,8 +114,6 @@ mod test {
 
         dbg!(inter);
 
-        println!("Closest: {}", oa.get(k).unwrap() + ob.get(k).unwrap());
-
-        assert!(false);
+        assert_eq!(610, oa.get(k).unwrap() + ob.get(k).unwrap());
     }
 }
