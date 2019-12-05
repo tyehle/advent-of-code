@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::fs;
 
 #[derive(Debug)]
@@ -18,13 +18,13 @@ fn parse() -> Vec<i32> {
 }
 
 fn param_mode(position: usize, opcode: i32) -> i32 {
-    opcode / 10i32.pow((position + 2).try_into().unwrap()) % 10
+    opcode / 10i32.pow(u32::try_from(position).unwrap() + 2) % 10
 }
 
 fn get_param(position: usize, opcode: i32, s: &mut State) -> i32 {
     let immediate = s.mem[s.pc + position + 1];
     match param_mode(position, opcode) {
-        0 => s.mem[immediate as usize],
+        0 => s.mem[usize::try_from(immediate).unwrap()],
         1 => immediate,
         _ => panic!("Unknown parameter mode at {}: {}", s.pc, opcode),
     }
@@ -34,7 +34,7 @@ fn store_value(position: usize, opcode: i32, s: &mut State, value: i32) {
     match param_mode(position, opcode) {
         0 => {
             let loc = s.mem[s.pc + position + 1];
-            s.mem[loc as usize] = value
+            s.mem[usize::try_from(loc).unwrap()] = value
         }
         _ => panic!("Bad store mode at {}: {}", s.pc, opcode),
     }
