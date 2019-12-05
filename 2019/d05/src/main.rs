@@ -40,11 +40,7 @@ fn store_value(position: usize, opcode: i32, s: &mut State, value: i32) {
     }
 }
 
-
-
 // instructions
-
-
 
 fn binop(opcode: i32, s: &mut State, op: impl Fn(i32, i32) -> i32) {
     let result = op(get_param(0, opcode, s), get_param(1, opcode, s));
@@ -72,23 +68,7 @@ fn jump_cond(opcode: i32, s: &mut State, cond: impl Fn(i32) -> bool) {
     }
 }
 
-fn compare(opcode: i32, s: &mut State, cond: impl Fn(i32, i32) -> bool) {
-    let result = if cond(get_param(0, opcode, s), get_param(1, opcode, s)) {
-        1
-    } else {
-        0
-    };
-
-    store_value(2, opcode, s, result);
-
-    s.pc += 4;
-}
-
-
-
 // interpreter
-
-
 
 fn step(state: &mut State) -> bool {
     let opcode = state.mem[state.pc];
@@ -97,14 +77,14 @@ fn step(state: &mut State) -> bool {
         false
     } else {
         match opcode % 100 {
-            1 => binop(opcode, state, |a, b| a+b),
-            2 => binop(opcode, state, |a, b| a*b),
+            1 => binop(opcode, state, |a, b| a + b),
+            2 => binop(opcode, state, |a, b| a * b),
             3 => read(opcode, state),
             4 => write(opcode, state),
             5 => jump_cond(opcode, state, |i| i != 0),
             6 => jump_cond(opcode, state, |i| i == 0),
-            7 => compare(opcode, state, |a, b| a < b),
-            8 => compare(opcode, state, |a, b| a == b),
+            7 => binop(opcode, state, |a, b| if a < b { 1 } else { 0 }),
+            8 => binop(opcode, state, |a, b| if a == b { 1 } else { 0 }),
             _ => panic!("Bad instruction at {}: {}", state.pc, opcode),
         }
 
@@ -115,8 +95,8 @@ fn step(state: &mut State) -> bool {
 fn execute(mem: Vec<i32>, input: Vec<i32>) -> State {
     let mut state = State {
         pc: 0,
-        mem: mem,
-        input: input,
+        mem,
+        input,
         output: vec![],
     };
 
@@ -167,15 +147,41 @@ mod test {
 
     #[test]
     fn test_jump() {
-        assert_eq!(execute(vec![3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9], vec![0]).output, vec![0]);
-        assert_eq!(execute(vec![3,3,1105,-1,9,1101,0,0,12,4,12,99,1], vec![0]).output, vec![0]);
+        assert_eq!(
+            execute(
+                vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9],
+                vec![0]
+            )
+            .output,
+            vec![0]
+        );
+        assert_eq!(
+            execute(
+                vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1],
+                vec![0]
+            )
+            .output,
+            vec![0]
+        );
     }
 
     #[test]
     fn test_compare() {
-        assert_eq!(execute(vec![3,9,8,9,10,9,4,9,99,-1,8], vec![8]).output, vec![1]);
-        assert_eq!(execute(vec![3,9,8,9,10,9,4,9,99,-1,8], vec![7]).output, vec![0]);
-        assert_eq!(execute(vec![3,9,7,9,10,9,4,9,99,-1,8], vec![8]).output, vec![0]);
-        assert_eq!(execute(vec![3,9,7,9,10,9,4,9,99,-1,8], vec![-1]).output, vec![1]);
+        assert_eq!(
+            execute(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], vec![8]).output,
+            vec![1]
+        );
+        assert_eq!(
+            execute(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8], vec![7]).output,
+            vec![0]
+        );
+        assert_eq!(
+            execute(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], vec![8]).output,
+            vec![0]
+        );
+        assert_eq!(
+            execute(vec![3, 9, 7, 9, 10, 9, 4, 9, 99, -1, 8], vec![-1]).output,
+            vec![1]
+        );
     }
 }
