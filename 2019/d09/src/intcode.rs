@@ -1,6 +1,7 @@
 use std::collections::{HashMap, VecDeque};
 use std::convert::{TryFrom, TryInto};
 use std::fs;
+use std::iter::FromIterator;
 
 static DEBUG: bool = false;
 
@@ -8,10 +9,23 @@ static DEBUG: bool = false;
 pub struct State {
     pub pc: usize,
     pub rel_base: i64,
-    pub mem: Vec<i64>,
-    pub extended_mem: HashMap<usize, i64>,
+    pub mem: HashMap<usize, i64>,
     pub input: VecDeque<i64>,
     pub output: VecDeque<i64>,
+}
+
+impl State {
+    fn get(&self, address: usize) -> i64 {
+        *self.mem.get(&address).unwrap_or(&0)
+    }
+
+    fn get_chunk<I: IntoIterator<Item=usize>>(&self, addresses: I) -> Vec<i64> {
+        addresses.into_iter().map(|addr| self.get(addr)).collect()
+    }
+
+    fn set(&mut self, address: usize, value: i64) {
+        self.mem.insert(address, value);
+    }
 }
 
 pub fn parse_program(s: String) -> Vec<i64> {
@@ -26,41 +40,25 @@ fn param_mode(position: usize, opcode: i64) -> i64 {
     opcode / 10i64.pow(u32::try_from(position).unwrap() + 2) % 10
 }
 
-fn get_mem(address: usize, s: &State) -> i64 {
-    if address < s.mem.len() {
-        s.mem[address]
-    } else {
-        *s.extended_mem.get(&address).unwrap_or(&0)
-    }
-}
-
 fn get_param(position: usize, opcode: i64, s: &mut State) -> i64 {
-    let immediate = s.mem[s.pc + position + 1];
+    let immediate = s.get(s.pc + position + 1);
     match param_mode(position, opcode) {
-        0 => get_mem(usize::try_from(immediate).unwrap(), s),
+        0 => s.get(immediate.try_into().unwrap()),
         1 => immediate,
-        2 => get_mem(usize::try_from(immediate + s.rel_base).unwrap(), s),
+        2 => s.get((immediate + s.rel_base).try_into().unwrap()),
         _ => panic!("Unknown parameter mode at {}: {}", s.pc, opcode),
-    }
-}
-
-fn set_mem(address: usize, value: i64, s: &mut State) {
-    if address < s.mem.len() {
-        s.mem[address] = value;
-    } else {
-        s.extended_mem.insert(address, value);
     }
 }
 
 fn store_value(position: usize, opcode: i64, s: &mut State, value: i64) {
     match param_mode(position, opcode) {
         0 => {
-            let loc = s.mem[s.pc + position + 1];
-            set_mem(usize::try_from(loc).unwrap(), value, s);
+            let loc = s.get(s.pc + position + 1);
+            s.set(loc.try_into().unwrap(), value);
         }
         2 => {
-            let loc = s.mem[s.pc + position + 1];
-            set_mem(usize::try_from(loc + s.rel_base).unwrap(), value, s);
+            let loc = s.get(s.pc + position + 1);
+            s.set((loc + s.rel_base).try_into().unwrap(), value);
         }
         _ => panic!("Bad store mode at {}: {}", s.pc, opcode),
     }
@@ -70,7 +68,7 @@ fn store_value(position: usize, opcode: i64, s: &mut State, value: i64) {
 
 fn binop(opcode: i64, s: &mut State, op: impl Fn(i64, i64) -> i64) {
     if DEBUG {
-        println!("binop {:?}", &s.mem[s.pc..s.pc + 4]);
+        println!("binop    {:?}", s.get_chunk(s.pc..s.pc+4));
     }
     let result = op(get_param(0, opcode, s), get_param(1, opcode, s));
     store_value(2, opcode, s, result);
@@ -79,7 +77,7 @@ fn binop(opcode: i64, s: &mut State, op: impl Fn(i64, i64) -> i64) {
 
 fn read(opcode: i64, s: &mut State) {
     if DEBUG {
-        println!("read  {:?}", &s.mem[s.pc..s.pc + 2]);
+        println!("read     {:?}", s.get_chunk(s.pc..s.pc + 2));
     }
     let result = s.input.pop_front().unwrap();
     store_value(0, opcode, s, result);
@@ -88,7 +86,7 @@ fn read(opcode: i64, s: &mut State) {
 
 fn write(opcode: i64, s: &mut State) {
     if DEBUG {
-        println!("write {:?}", &s.mem[s.pc..s.pc + 2]);
+        println!("write    {:?}", s.get_chunk(s.pc..s.pc + 2));
     }
     let value = get_param(0, opcode, s);
     s.output.push_back(value);
@@ -97,7 +95,7 @@ fn write(opcode: i64, s: &mut State) {
 
 fn jump_cond(opcode: i64, s: &mut State, cond: impl Fn(i64) -> bool) {
     if DEBUG {
-        println!("c_jmp {:?}", &s.mem[s.pc..s.pc + 3]);
+        println!("c_jmp    {:?}", s.get_chunk(s.pc..s.pc + 3));
     }
     if cond(get_param(0, opcode, s)) {
         s.pc = get_param(1, opcode, s).try_into().unwrap();
@@ -108,7 +106,7 @@ fn jump_cond(opcode: i64, s: &mut State, cond: impl Fn(i64) -> bool) {
 
 fn adj_rel_base(opcode: i64, s: &mut State) {
     if DEBUG {
-        println!("rel_base {:?}", &s.mem[s.pc..s.pc + 2])
+        println!("rel_base {:?}", s.get_chunk(s.pc..s.pc + 2))
     }
     s.rel_base += get_param(0, opcode, s);
     s.pc += 2;
@@ -117,7 +115,7 @@ fn adj_rel_base(opcode: i64, s: &mut State) {
 // interpreter
 
 pub fn step(state: &mut State) -> bool {
-    let opcode = state.mem[state.pc];
+    let opcode = state.get(state.pc);
 
     if opcode == 99 {
         false
@@ -149,8 +147,7 @@ pub fn execute(mem: Vec<i64>, input: Vec<i64>) -> State {
     let mut state = State {
         pc: 0,
         rel_base: 0,
-        mem,
-        extended_mem: HashMap::new(),
+        mem: HashMap::from_iter(mem.into_iter().enumerate()),
         input: VecDeque::from(input),
         output: VecDeque::new(),
     };
@@ -167,31 +164,28 @@ mod test {
     #[test]
     fn test_math() {
         assert_eq!(
-            execute(vec![1, 0, 0, 0, 99], vec![]).mem,
+            execute(vec![1, 0, 0, 0, 99], vec![]).get_chunk(0..=4),
             vec![2, 0, 0, 0, 99]
         );
         assert_eq!(
-            execute(vec![2, 3, 0, 3, 99], vec![]).mem,
+            execute(vec![2, 3, 0, 3, 99], vec![]).get_chunk(0..=4),
             vec![2, 3, 0, 6, 99]
         );
         assert_eq!(
-            execute(vec![1, 1, 1, 4, 99, 5, 6, 0, 99], vec![]).mem,
+            execute(vec![1, 1, 1, 4, 99, 5, 6, 0, 99], vec![]).get_chunk(0..=8),
             vec![30, 1, 1, 4, 2, 5, 6, 0, 99],
         );
     }
 
     #[test]
     fn test_io() {
-        assert_eq!(execute(vec![3, 0, 99], vec![7]).mem, vec![7, 0, 99]);
+        assert_eq!(execute(vec![3, 0, 99], vec![7]).get(0), 7);
         assert_eq!(execute(vec![4, 3, 99, 9], vec![]).output, vec![9]);
     }
 
     #[test]
     fn test_mode() {
-        assert_eq!(
-            execute(vec![1002, 4, 3, 4, 33], vec![]).mem,
-            vec![1002, 4, 3, 4, 99]
-        );
+        assert_eq!(execute(vec![1002, 4, 3, 4, 33], vec![]).get(4), 99);
     }
 
     #[test]
