@@ -8,3 +8,4 @@ edition = "2018"
 
 [dependencies]
 num-complex = "0.2"
+ansi-escapes = "0.1.0"
