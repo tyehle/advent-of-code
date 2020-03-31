@@ -15,11 +15,11 @@ pub struct State {
 }
 
 impl State {
-    pub fn new(prog: Vec<i64>) -> State {
+    pub fn new(prog: &[i64]) -> State {
         State {
             pc: 0,
             rel_base: 0,
-            mem: HashMap::from_iter(prog.into_iter().enumerate()),
+            mem: HashMap::from_iter(prog.iter().cloned().enumerate()),
             input: VecDeque::new(),
             output: VecDeque::new(),
         }
