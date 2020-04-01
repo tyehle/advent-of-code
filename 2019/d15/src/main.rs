@@ -142,19 +142,29 @@ impl Droid {
 }
 
 
-fn spread_o2(map: &mut HashMap<Complex<i64>, Tile>, fringe: HashSet<Complex<i64>>) -> HashSet<Complex<i64>> {
+fn spread_o2(map: &mut HashMap<Complex<i64>, Tile>, fringe: &mut HashSet<Complex<i64>>, n: u32) -> u32 {
     fn emtpy_adjacent(map: &HashMap<Complex<i64>, Tile>, loc: Complex<i64>) -> Vec<Complex<i64>> {
         Direction::iter().map(|d| loc+d.unit()).filter(|adj| map.get(adj) == Some(&Tile::Blank)).collect()
     }
 
-    let mut new_fringe = HashSet::new();
-    for loc in fringe {
-        for turned in emtpy_adjacent(map, loc) {
-            map.insert(turned, Tile::Oxygen);
-            new_fringe.insert(turned);
+    for i in 0..n {
+        if fringe.is_empty() {
+            return i;
+        }
+
+        let elements = fringe.iter().cloned().collect::<Vec<_>>();
+
+        fringe.clear();
+
+        for loc in elements {
+            for turned in emtpy_adjacent(map, loc) {
+                map.insert(turned, Tile::Oxygen);
+                fringe.insert(turned);
+            }
         }
     }
-    new_fringe
+
+    n
 }
 
 
@@ -252,19 +262,22 @@ fn interact(instructions: &[i64]) {
 
     let console = Term::stdout();
 
-    init_output();
     print_droid(&droid);
 
     loop {
-        match console.read_char().unwrap() {
+        let done = match console.read_char().unwrap() {
             ' ' => droid.auto_step(1),
             'n' => droid.auto_step(10),
             '\n' => droid.auto_step(100),
-            '\u{4}' | 'q' => break, // eof
+            '\u{4}' | 'q' => return, // eof
             _ => continue,
         };
 
         print_droid(&droid);
+
+        if done {
+            break;
+        }
     }
 
     // Everything shold be fully explored by now
@@ -274,27 +287,37 @@ fn interact(instructions: &[i64]) {
         Some(o2_loc) => {
             let mut fringe = HashSet::new();
             fringe.insert(o2_loc);
+
+            let mut n = 0;
+
             loop {
-                match console.read_char().unwrap() {
-                    ' ' => fringe = spread_o2(&mut droid.map, fringe),
-                    'n' => for _ in 0..10 { fringe = spread_o2(&mut droid.map, fringe) },
-                    '\n' => for _ in 0..100 { fringe = spread_o2(&mut droid.map, fringe) },
-                    '\u{4}' | 'q' => break, // eof
+                let steps = match console.read_char().unwrap() {
+                    ' ' => spread_o2(&mut droid.map, &mut fringe, 1),
+                    'n' => spread_o2(&mut droid.map, &mut fringe, 10),
+                    '\n' => spread_o2(&mut droid.map, &mut fringe, 100),
+                    '\u{4}' | 'q' => return, // eof
                     _ => continue,
-                }
+                };
 
                 print_o2(&droid.map, &fringe);
+
+                if steps == 0 {
+                    break;
+                }
+
+                n += steps;
             }
+
+            println!("Path to O2: {}", droid.o2_len.unwrap());
+            println!("O2 time: {}", n-1);
         }
     }
-
-    finish_output();
-
-    println!("Path to O2: {:?}", droid.o2_len);
 }
 
 fn main() {
     let input = parse();
 
+    init_output();
     interact(&input);
+    finish_output();
 }
