@@ -1,11 +1,12 @@
 use console::{style, Term};
 use num_complex::Complex;
 use num_traits::identities::Zero;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 
 mod intcode;
 use intcode::*;
+
 
 #[derive(Debug)]
 enum Direction {
@@ -55,11 +56,14 @@ impl Direction {
     }
 }
 
+
+#[derive(PartialEq, Eq)]
 enum Tile {
     Blank,
     Wall,
     Oxygen,
 }
+
 
 struct Droid {
     controller: State,
@@ -114,7 +118,7 @@ impl Droid {
         self.pos = new_pos;
     }
 
-    fn auto_step(&mut self, count: u32) {
+    fn auto_step(&mut self, count: u32) -> bool {
         for _ in 0..count {
             // are there places to explore around us?
             let unexplored =
@@ -124,7 +128,7 @@ impl Droid {
                 Some(dir) => self.step(dir),
                 None => {
                     match self.path.last() {
-                        None => return, // The space is fully epxlored
+                        None => return true, // The space is fully epxlored
                         Some(new_pos) => {
                             self.step(&Direction::from_unit(new_pos - self.pos).unwrap())
                         }
@@ -132,56 +136,108 @@ impl Droid {
                 }
             }
         }
+
+        false
     }
 }
+
+
+fn spread_o2(map: &mut HashMap<Complex<i64>, Tile>, fringe: HashSet<Complex<i64>>) -> HashSet<Complex<i64>> {
+    fn emtpy_adjacent(map: &HashMap<Complex<i64>, Tile>, loc: Complex<i64>) -> Vec<Complex<i64>> {
+        Direction::iter().map(|d| loc+d.unit()).filter(|adj| map.get(adj) == Some(&Tile::Blank)).collect()
+    }
+
+    let mut new_fringe = HashSet::new();
+    for loc in fringe {
+        for turned in emtpy_adjacent(map, loc) {
+            map.insert(turned, Tile::Oxygen);
+            new_fringe.insert(turned);
+        }
+    }
+    new_fringe
+}
+
 
 fn parse() -> Vec<i64> {
     parse_program(fs::read_to_string("input.txt").unwrap())
 }
 
+
 fn init_output() {
     // Clear the screen
-    print!("\u{1B}[2J\u{1B}[?25l");
+    println!("\u{1B}[2J\u{1B}[?25l");
 }
 
 fn finish_output() {
     print!("\u{1B}[?25h");
 }
 
-fn print_world(droid: &Droid) {
-    let spaces = droid.map.keys().collect::<Vec<_>>();
 
-    let min_y = spaces.iter().min_by(|a, b| a.im.cmp(&b.im)).unwrap().im - 2;
-    let max_y = spaces.iter().max_by(|a, b| a.im.cmp(&b.im)).unwrap().im + 2;
+fn print_world<D, V>(map: &HashMap<Complex<i64>, V>, glyph: impl Fn(Complex<i64>) -> console::StyledObject<D>)
+where D: std::fmt::Display {
+    let spaces = map.keys().collect::<Vec<_>>();
 
-    let min_x = spaces.iter().min_by(|a, b| a.re.cmp(&b.re)).unwrap().re - 5;
-    let max_x = spaces.iter().max_by(|a, b| a.re.cmp(&b.re)).unwrap().re + 5;
+    let ys = spaces.iter().map(|c| c.im);
+    let min_y = ys.clone().min().unwrap() - 2;
+    let max_y = ys.max().unwrap() + 2;
 
-    fn tile_glyph(tile: Option<&Tile>) -> console::StyledObject<&'static str> {
-        match tile {
-            None => style(" "),
-            Some(Tile::Blank) => style(".").black(),
-            Some(Tile::Wall) => style("#").bold().black(),
-            Some(Tile::Oxygen) => style("O").cyan(),
-        }
-    }
+    let xs = spaces.iter().map(|c| c.re);
+    let min_x = xs.clone().min().unwrap() - 3;
+    let max_x = xs.max().unwrap() + 3;
 
-    print!("\u{1B}[H");
+    print!("\u{1B}[H"); // reset cursor
     for row in (min_y..=max_y).rev() {
         for col in min_x..=max_x {
-            let loc = Complex::new(col, row);
-            let glyph = {
-                if droid.pos == loc {
-                    style("D").red().bold()
-                } else {
-                    tile_glyph(droid.map.get(&loc))
-                }
-            };
-            print!("{}", glyph);
+            print!("{}", glyph(Complex::new(col, row)));
         }
         print!("\n");
     }
 }
+
+
+fn print_droid(droid: &Droid) {
+    let glyph = |loc| {
+        let droid_style = {
+            if droid.pos == loc {
+                console::Style::new().on_red()
+            } else {
+                console::Style::new()
+            }
+        };
+
+        let tile = match droid.map.get(&loc) {
+            None => style("  "),
+            Some(Tile::Blank) => style("..").black(),
+            Some(Tile::Wall) => style("▓▓").bold().black(),
+            Some(Tile::Oxygen) => style("O2").cyan().bold(),
+        };
+
+        droid_style.apply_to(tile)
+    };
+
+    print_world(&droid.map, glyph);
+}
+
+
+fn print_o2(map: &HashMap<Complex<i64>, Tile>, fringe: &HashSet<Complex<i64>>) {
+    let glyph = |loc| {
+        match map.get(&loc) {
+            None => style("  "),
+            Some(Tile::Blank) => style("..").black(),
+            Some(Tile::Wall) => style("▓▓").bold().black(),
+            Some(Tile::Oxygen) => {
+                if fringe.contains(&loc) {
+                    style("O2").cyan().bold()
+                } else {
+                    style("O2").cyan()
+                }
+            },
+        }
+    };
+
+    print_world(map, glyph);
+}
+
 
 fn interact(instructions: &[i64]) {
     let mut droid = Droid {
@@ -197,12 +253,10 @@ fn interact(instructions: &[i64]) {
     let console = Term::stdout();
 
     init_output();
+    print_droid(&droid);
+
     loop {
         match console.read_char().unwrap() {
-            // 'w' => droid.step(&Direction::North),
-            // 'a' => droid.step(&Direction::West),
-            // 's' => droid.step(&Direction::South),
-            // 'd' => droid.step(&Direction::East),
             ' ' => droid.auto_step(1),
             'n' => droid.auto_step(10),
             '\n' => droid.auto_step(100),
@@ -210,8 +264,30 @@ fn interact(instructions: &[i64]) {
             _ => continue,
         };
 
-        print_world(&droid);
+        print_droid(&droid);
     }
+
+    // Everything shold be fully explored by now
+    match droid.map.iter().find(|(_, v)| **v == Tile::Oxygen).map(|(k, _)| *k) {
+        None => (),
+
+        Some(o2_loc) => {
+            let mut fringe = HashSet::new();
+            fringe.insert(o2_loc);
+            loop {
+                match console.read_char().unwrap() {
+                    ' ' => fringe = spread_o2(&mut droid.map, fringe),
+                    'n' => for _ in 0..10 { fringe = spread_o2(&mut droid.map, fringe) },
+                    '\n' => for _ in 0..100 { fringe = spread_o2(&mut droid.map, fringe) },
+                    '\u{4}' | 'q' => break, // eof
+                    _ => continue,
+                }
+
+                print_o2(&droid.map, &fringe);
+            }
+        }
+    }
+
     finish_output();
 
     println!("Path to O2: {:?}", droid.o2_len);
