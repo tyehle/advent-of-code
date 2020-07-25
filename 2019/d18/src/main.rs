@@ -4,7 +4,7 @@ use std::collections::{HashMap, VecDeque};
 
 type C = Complex<i32>;
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 enum Tile {
     Open,
     Wall,
@@ -89,24 +89,19 @@ fn traversable(world: &HashMap<C, Tile>, keys: &HashSet<char>, pos: C) -> bool {
         .unwrap_or(false)
 }
 
-fn shortest_path(
+fn distance_to_keys(
     world: &HashMap<C, Tile>,
     keys: &HashSet<char>,
     start: C,
-    dest: C,
-) -> Option<usize> {
+) -> Vec<(char, usize)> {
     let mut fringe = VecDeque::new();
-    let mut done = HashSet::new();
+    let mut done = HashMap::new();
 
     fringe.push_back((start, 0));
 
     while let Some((pos, distance)) = fringe.pop_front() {
-        if done.contains(&pos) {
+        if done.contains_key(&pos) {
             continue;
-        }
-
-        if pos == dest {
-            return Some(distance);
         }
 
         fringe.extend(
@@ -115,10 +110,15 @@ fn shortest_path(
                 .filter(|p| traversable(world, keys, **p))
                 .map(|p| (*p, distance + 1)),
         );
-        done.insert(pos);
+        done.insert(pos, distance);
     }
 
-    None
+    done.iter()
+        .filter_map(|(k, v)| match world[k] {
+            Tile::Key(name) if !keys.contains(&name) => Some((name, *v)),
+            _ => None,
+        })
+        .collect()
 }
 
 fn collect_all_keys(world: &HashMap<C, Tile>, objects: &HashMap<Tile, C>) -> Option<usize> {
@@ -149,19 +149,19 @@ fn collect_all_keys(world: &HashMap<C, Tile>, objects: &HashMap<Tile, C>) -> Opt
         }
 
         let mut best = None;
+
         // consider all keys can we reach from here
-        for (&key, &key_loc) in all_keys.iter().filter(|(k, _)| !keys.contains(k)) {
-            if let Some(distance) = shortest_path(world, &keys, pos, key_loc) {
-                // println!("Found {} path to {} using {:?}", distance, key, keys);
-                let mut new_keys = keys.clone();
-                new_keys.insert(key);
-                if let Some(remaining_distance) =
-                    collect_remaining(world, all_keys, cache, key_loc, new_keys)
+        for (key, distance) in distance_to_keys(world, &keys, pos) {
+            let mut new_keys = keys.clone();
+            new_keys.insert(key);
+            if let Some(remaining_distance) =
+                collect_remaining(world, all_keys, cache, all_keys[&key], new_keys)
+            {
+                if best
+                    .map(|d| distance + remaining_distance < d)
+                    .unwrap_or(true)
                 {
-                    let candidate = distance + remaining_distance;
-                    if best.map(|d| candidate < d).unwrap_or(true) {
-                        best = Some(candidate);
-                    }
+                    best = Some(distance + remaining_distance);
                 }
             }
         }
@@ -176,8 +176,6 @@ fn collect_all_keys(world: &HashMap<C, Tile>, objects: &HashMap<Tile, C>) -> Opt
 
 fn main() {
     let (world, objects) = parse_input();
-
-    // got 186. Too low
 
     println!("{}", collect_all_keys(&world, &objects).unwrap());
 }
@@ -197,29 +195,13 @@ mod tests {
             ########################",
         ));
 
-        let dist = shortest_path(
+        let distances = distance_to_keys(
             &world,
             &HashSet::from(vec!['a', 'b', 'c']),
             objects[&Tile::Key('c')],
-            objects[&Tile::Key('e')],
         );
-        assert_eq!(dist, Some(14));
 
-        let dist = shortest_path(
-            &world,
-            &HashSet::from(vec!['a', 'b', 'c']),
-            objects[&Tile::Key('c')],
-            objects[&Tile::Key('f')],
-        );
-        assert_eq!(dist, None);
-
-        let dist = shortest_path(
-            &world,
-            &HashSet::from(vec!['a', 'b', 'c']),
-            objects[&Tile::Key('c')],
-            objects[&Tile::Key('d')],
-        );
-        assert_eq!(dist, Some(24));
+        assert_eq!(distances, vec![('e', 14), ('d', 24)]);
     }
 
     #[test]
