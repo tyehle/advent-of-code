@@ -1,4 +1,4 @@
-use im::HashSet;
+use im::{HashSet, Vector};
 use num_complex::Complex;
 use std::collections::{HashMap, VecDeque};
 
@@ -13,13 +13,21 @@ enum Tile {
     Key(char),
 }
 
-fn parse_input() -> (HashMap<C, Tile>, HashMap<Tile, C>) {
+struct World {
+    tiles: HashMap<C, Tile>,
+    keys: HashMap<char, C>,
+    entrances: Vec<C>,
+}
+
+fn parse_input() -> World {
     parse(std::fs::read_to_string("input.txt").expect("Failed to open input file"))
 }
 
-fn parse(input: String) -> (HashMap<C, Tile>, HashMap<Tile, C>) {
-    let mut world = HashMap::new();
-    let mut objects = HashMap::new();
+fn parse(input: String) -> World {
+    let mut tiles = HashMap::new();
+    let mut keys = HashMap::new();
+    let mut entrances = Vec::new();
+
     let mut x = 0;
     let mut y = 0;
 
@@ -28,29 +36,28 @@ fn parse(input: String) -> (HashMap<C, Tile>, HashMap<Tile, C>) {
         let pos = Complex::new(x, y);
         match c {
             '.' => {
-                world.insert(pos, Tile::Open);
+                tiles.insert(pos, Tile::Open);
             }
 
             '#' => {
-                world.insert(pos, Tile::Wall);
+                tiles.insert(pos, Tile::Wall);
             }
 
             '@' => {
-                world.insert(pos, Tile::Entrance);
-                objects.insert(Tile::Entrance, pos);
+                tiles.insert(pos, Tile::Entrance);
+                entrances.push(pos);
             }
 
             '\n' => {}
 
             c if c.is_ascii_uppercase() => {
                 let name = c.to_lowercase().next().unwrap();
-                world.insert(pos, Tile::Door(name));
-                objects.insert(Tile::Door(name), pos);
+                tiles.insert(pos, Tile::Door(name));
             }
 
             c if c.is_ascii_lowercase() => {
-                world.insert(pos, Tile::Key(c));
-                objects.insert(Tile::Key(c), pos);
+                tiles.insert(pos, Tile::Key(c));
+                keys.insert(c, pos);
             }
 
             bad => panic!("Unrecognized character {}", bad),
@@ -65,7 +72,7 @@ fn parse(input: String) -> (HashMap<C, Tile>, HashMap<Tile, C>) {
         }
     }
 
-    (world, objects)
+    World { tiles, keys, entrances }
 }
 
 fn adjacent(pos: C) -> Vec<C> {
@@ -90,12 +97,13 @@ fn traversable(world: &HashMap<C, Tile>, keys: &HashSet<char>, pos: C) -> bool {
 }
 
 fn distance_to_keys(
-    world: &HashMap<C, Tile>,
+    world: &World,
     keys: &HashSet<char>,
     start: C,
 ) -> Vec<(char, usize)> {
     let mut fringe = VecDeque::new();
     let mut done = HashMap::new();
+    let mut found_keys = Vec::new();
 
     fringe.push_back((start, 0));
 
@@ -107,77 +115,97 @@ fn distance_to_keys(
         fringe.extend(
             adjacent(pos)
                 .iter()
-                .filter(|p| traversable(world, keys, **p))
+                .filter(|p| traversable(&world.tiles, keys, **p))
                 .map(|p| (*p, distance + 1)),
         );
         done.insert(pos, distance);
+        match world.tiles[&pos] {
+            Tile::Key(name) if !keys.contains(&name) => found_keys.push((name, distance)),
+            _ => {}
+        }
     }
 
-    done.iter()
-        .filter_map(|(k, v)| match world[k] {
-            Tile::Key(name) if !keys.contains(&name) => Some((name, *v)),
-            _ => None,
-        })
-        .collect()
+    found_keys
 }
 
-fn collect_all_keys(world: &HashMap<C, Tile>, objects: &HashMap<Tile, C>) -> Option<usize> {
-    let start = objects.get(&Tile::Entrance).unwrap().clone();
-
-    let all_keys = objects
-        .iter()
-        .filter_map(|(tile, pos)| match tile {
-            Tile::Key(name) => Some((*name, *pos)),
-            _ => None,
-        })
-        .collect();
-
+fn collect_all_keys(world: &World) -> Option<usize> {
     fn collect_remaining(
-        world: &HashMap<C, Tile>,
-        all_keys: &HashMap<char, C>,
-        cache: &mut HashMap<(C, HashSet<char>), Option<usize>>,
-        pos: C,
-        keys: HashSet<char>,
+        world: &World,
+        cache: &mut HashMap<(Vector<C>, HashSet<char>), Option<usize>>,
+        input: (Vector<C>, HashSet<char>),
     ) -> Option<usize> {
-        if let Some(&result) = cache.get(&(pos, keys.clone())) {
+        if let Some(&result) = cache.get(&input) {
             return result;
         }
 
+        let (positions, keys) = input;
+
         // check to see if we are done
-        if all_keys.len() == keys.len() {
+        if world.keys.len() == keys.len() {
             return Some(0);
         }
 
         let mut best = None;
 
         // consider all keys can we reach from here
-        for (key, distance) in distance_to_keys(world, &keys, pos) {
-            let mut new_keys = keys.clone();
-            new_keys.insert(key);
-            if let Some(remaining_distance) =
-                collect_remaining(world, all_keys, cache, all_keys[&key], new_keys)
-            {
-                if best
-                    .map(|d| distance + remaining_distance < d)
-                    .unwrap_or(true)
+        for (i, &pos) in positions.iter().enumerate() {
+            for (key, distance) in distance_to_keys(world, &keys, pos) {
+                let mut new_keys = keys.clone();
+                new_keys.insert(key);
+                let mut new_positions = positions.clone();
+                new_positions[i] = world.keys[&key];
+                if let Some(remaining_distance) =
+                    collect_remaining(world, cache, (new_positions, new_keys))
                 {
-                    best = Some(distance + remaining_distance);
+                    if best
+                        .map(|d| distance + remaining_distance < d)
+                        .unwrap_or(true)
+                    {
+                        best = Some(distance + remaining_distance);
+                    }
                 }
             }
         }
 
-        cache.insert((pos, keys), best);
+        cache.insert((positions, keys), best);
         best
     };
 
     let mut cache = HashMap::new();
-    collect_remaining(world, &all_keys, &mut cache, start, HashSet::new())
+    collect_remaining(world, &mut cache, (Vector::from(&world.entrances), HashSet::new()))
+}
+
+fn to_quad_world(world: &mut World) {
+    // ensure there is only one entrance
+    if world.entrances.len() != 1 {
+        panic!("There must be one entrance!");
+    }
+
+    let pos = world.entrances[0];
+
+    // add the new walls
+    world.tiles.insert(pos, Tile::Wall);
+    for new_wall in adjacent(pos) {
+        world.tiles.insert(new_wall, Tile::Wall);
+    }
+
+    // add the new entrances
+    let Complex { re: x, im: y } = pos;
+    world.entrances = vec![
+        Complex::new(x + 1, y + 1),
+        Complex::new(x + 1, y - 1),
+        Complex::new(x - 1, y - 1),
+        Complex::new(x - 1, y + 1),
+    ];
 }
 
 fn main() {
-    let (world, objects) = parse_input();
+    let mut world = parse_input();
 
-    println!("{}", collect_all_keys(&world, &objects).unwrap());
+    println!("{}", collect_all_keys(&world).unwrap());
+
+    to_quad_world(&mut world);
+    println!("{}", collect_all_keys(&world).unwrap());
 }
 
 #[cfg(test)]
@@ -186,7 +214,7 @@ mod tests {
 
     #[test]
     fn test_shortest_path() {
-        let (world, objects) = parse(String::from(
+        let world = parse(String::from(
             "\
             ########################\n\
             #f.D.E.e.C.b.A.@.a.B.c.#\n\
@@ -198,7 +226,7 @@ mod tests {
         let distances = distance_to_keys(
             &world,
             &HashSet::from(vec!['a', 'b', 'c']),
-            objects[&Tile::Key('c')],
+            Complex::new(21, 1),
         );
 
         assert_eq!(distances, vec![('e', 14), ('d', 24)]);
@@ -206,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_collect_keys() {
-        let (world, objects) = parse(String::from(
+        let world = parse(String::from(
             "\
             ########################\n\
             #f.D.E.e.C.b.A.@.a.B.c.#\n\
@@ -215,6 +243,6 @@ mod tests {
             ########################",
         ));
 
-        assert_eq!(Some(86), collect_all_keys(&world, &objects));
+        assert_eq!(Some(86), collect_all_keys(&world));
     }
 }
