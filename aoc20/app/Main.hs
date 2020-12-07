@@ -1,6 +1,6 @@
 module Main where
 
-import D04
+import D05
 
 main :: IO ()
 main = run

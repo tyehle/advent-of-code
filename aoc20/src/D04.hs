@@ -1,7 +1,7 @@
 module D04 where
 
 import Data.Char
-import Data.List ( (\\), isSuffixOf )
+import Data.List ( isSuffixOf )
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Text.Read (readMaybe)
