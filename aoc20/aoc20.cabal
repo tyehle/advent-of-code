@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4d4a7a909f008e4bb2046166a0b82a60c8e5f2d934212d950ddc8a9a64b100bb
+-- hash: 7d7313cb57c1db5d8fbbae1891320675435bdbb62e6187ef8dede60a32501d2e
 
 name:           aoc20
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       D06
       D07
       D08
+      Interp
       Parsing
   other-modules:
       Paths_aoc20

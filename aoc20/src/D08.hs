@@ -1,24 +1,9 @@
-{-# LANGUAGE NamedFieldPuns #-}
 module D08 where
 
 import Data.Maybe
 
-data State = State
-  { pc :: Int
-  , acc :: Int
-  }
+import Interp
 
-parse :: String -> [(String, Int)]
-parse = map (instruction . words) . lines
-  where
-    instruction [name, num] = (name, read (dropWhile (== '+') num))
-
-step :: [(String, Int)] -> State -> State
-step prog State{pc, acc} = case prog !! pc of
-  ("nop", _) -> State (pc+1) acc
-  ("acc", n) -> State (pc+1) (acc+n)
-  ("jmp", n) -> State (pc+n) acc
-  (i, _) -> error $ "Unknown instruction: " ++ i
 
 part1 prog = go [] (State 0 0)
   where
@@ -29,8 +14,8 @@ part1 prog = go [] (State 0 0)
 part2 initialProg = head $ mapMaybe (go [] (State 0 0)) (subs initialProg)
   where
     subs [] = []
-    subs (i@("jmp", n):rest) = (("nop", n):rest) : map (i:) (subs rest)
-    subs (i@("nop", n):rest) = (("jmp", n):rest) : map (i:) (subs rest)
+    subs (i@(Jmp n):rest) = (Nop n:rest) : map (i:) (subs rest)
+    subs (i@(Nop n):rest) = (Jmp n:rest) : map (i:) (subs rest)
     subs (i:rest) = map (i:) (subs rest)
     go visited s@(State pc acc) prog
       | pc == length prog = Just acc
@@ -40,6 +25,6 @@ part2 initialProg = head $ mapMaybe (go [] (State 0 0)) (subs initialProg)
 
 run :: IO ()
 run = do
-  input <- parse <$> readFile "input/08"
+  input <- parseProgram <$> readFile "input/08"
   print $ part1 input
   print $ part2 input
