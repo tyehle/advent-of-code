@@ -16,6 +16,14 @@ parseGrid = go 0 0 Map.empty
     go _ y m ('\n':cs) = go 0 (y+1) m cs
     go x y m (c:cs) = go (x+1) y (Map.insert (x, y) c m) cs
 
+printGrid :: (Num n, Ord n, Enum n) => Map (n, n) Char -> String
+printGrid grid = concat [maybe ' ' id (Map.lookup (x, y) grid) : if x == maxX then "\n" else "" | y <- [minY .. maxY], x <- [minX .. maxX]]
+  where
+    minX = minimum $ map fst $ Map.keys grid
+    minY = minimum $ map snd $ Map.keys grid
+    maxX = maximum $ map fst $ Map.keys grid
+    maxY = maximum $ map snd $ Map.keys grid
+
 
 type Parser a = Parsec Void String a
 
