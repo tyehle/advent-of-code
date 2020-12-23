@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Parsing where
 
+import Data.List
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Void
@@ -23,6 +24,15 @@ printGrid grid = concat [maybe ' ' id (Map.lookup (x, y) grid) : if x == maxX th
     minY = minimum $ map snd $ Map.keys grid
     maxX = maximum $ map fst $ Map.keys grid
     maxY = maximum $ map snd $ Map.keys grid
+
+
+split :: Eq a => [a] -> [a] -> [[a]]
+split initialItems sep = go [] initialItems
+  where
+    go group [] = [reverse group]
+    go group items@(next:rest)
+      | sep `isPrefixOf` items = reverse group : go [] (drop (length sep) items)
+      | otherwise = go (next:group) rest
 
 
 type Parser a = Parsec Void String a
