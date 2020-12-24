@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 47d773c831270e0d484a31cf9edd4c48c2c34288d6050dbb5bff9134d2e706a2
+-- hash: d44b705e6d9e5ba3f8e31bcbb34eacf32d07bcd4ef5d8250b107ae8842b85791
 
 name:           aoc20
 version:        0.1.0.0
@@ -45,6 +45,7 @@ library
       D15
       D16
       D17
+      D18
       Interp
       Parsing
       QInt
