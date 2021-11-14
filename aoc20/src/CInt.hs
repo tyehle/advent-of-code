@@ -13,8 +13,10 @@ instance Num C where
 
 
 rotate :: C -> C -> Integer -> C
-rotate point vec 90 = point * vec
-rotate point vec n = rotate (point * vec) vec (n - 90)
+rotate point dir n
+  | n == 0 = point
+  | n < 0 = rotate point (negate dir) (negate n)
+  | otherwise = rotate (point * dir) dir (n - 1)
 
 
 toVec :: Char -> C
